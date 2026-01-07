@@ -26,11 +26,16 @@ export default function BuilderPage() {
   const [activeTab, setActiveTab] = useState<'builder' | 'submissions'>('builder');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
+  const [showHighlight, setShowHighlight] = useState(false);
 
   useEffect(() => {
     // Avoid synchronous state update during render
     const timer = setTimeout(() => {
       setMounted(true);
+      setShowHighlight(true);
+      // Remove highlight after 5 seconds
+      setTimeout(() => setShowHighlight(false), 5000);
+      
       if (id) {
         const foundForm = getForm(id);
         if (foundForm) {
@@ -220,21 +225,42 @@ export default function BuilderPage() {
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
-             <Link href={`/view/${form.id}`} target="_blank">
-              <Button variant="ghost" size="sm" className="text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100 text-xs">
-                <Eye className="mr-2 h-3.5 w-3.5" />
-                Preview
+          <div className="flex items-center gap-3 relative">
+            {/* Floating Guide Tip - Below the buttons, tail pointing up */}
+            {showHighlight && (
+              <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-50">
+                {/* Tail (Triangle) at the TOP */}
+                <div className="w-2 h-2 bg-white rotate-45 -mb-1 shadow-sm z-10"></div>
+                {/* Content Box */}
+                <div className="bg-white text-black text-[10px] font-bold px-3 py-1.5 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.3)] flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                  </span>
+                  Ready to Publish
+                </div>
+              </div>
+            )}
+
+            <div className={cn(
+              "flex items-center gap-3 p-1 rounded-xl transition-all duration-1000 relative",
+              showHighlight ? "ring-2 ring-white bg-white/10 shadow-[0_0_30px_rgba(255,255,255,0.15)] scale-105" : "scale-100"
+            )}>
+               <Link href={`/view/${form.id}`} target="_blank">
+                <Button variant="ghost" size="sm" className="text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100 text-xs">
+                  <Eye className="mr-2 h-3.5 w-3.5" />
+                  Preview
+                </Button>
+              </Link>
+              <Button 
+                size="sm"
+                className="bg-white text-black hover:bg-zinc-200 font-bold px-4 rounded-lg transition-all shadow-[0_0_20px_rgba(255,255,255,0.05)] text-xs"
+                onClick={copyLink}
+              >
+                <Share2 className="mr-2 h-3.5 w-3.5" />
+                {copied ? 'Copied!' : 'Share'}
               </Button>
-            </Link>
-            <Button 
-              size="sm"
-              className="bg-white text-black hover:bg-zinc-200 font-bold px-4 rounded-lg transition-all shadow-[0_0_20px_rgba(255,255,255,0.05)] text-xs"
-              onClick={copyLink}
-            >
-              <Share2 className="mr-2 h-3.5 w-3.5" />
-              {copied ? 'Copied!' : 'Share'}
-            </Button>
+            </div>
           </div>
         </header>
 

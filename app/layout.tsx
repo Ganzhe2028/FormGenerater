@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Monk Form | AI Form Engine",
+  title: "Formaker | AI Form Engine",
   description: "High-performance AI-powered form generation",
 };
 

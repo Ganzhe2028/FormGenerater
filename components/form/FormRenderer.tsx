@@ -41,6 +41,9 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
         case 'checkbox':
           validator = z.boolean().default(false);
           break;
+        case 'checkbox-group':
+          validator = z.array(z.string()).default([]);
+          break;
         case 'rating':
           validator = z.coerce.number().min(1).max(5);
           break;
@@ -176,6 +179,26 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
               />
             )}
 
+            {field.type === 'date' && (
+              <Input
+                id={field.id}
+                type="date"
+                className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 transition-all [color-scheme:dark]"
+                {...register(field.id)}
+              />
+            )}
+
+            {field.type === 'file' && (
+              <div className="group relative">
+                <Input
+                  id={field.id}
+                  type="file"
+                  className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 transition-all cursor-pointer file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-white file:text-black hover:file:bg-zinc-200"
+                  {...register(field.id)}
+                />
+              </div>
+            )}
+
             {field.type === 'select' && (
               <Controller
                 name={field.id}
@@ -264,6 +287,40 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
                     </label>
                   </div>
                 )}
+              />
+            )}
+
+            {field.type === 'checkbox-group' && (
+              <Controller
+                name={field.id}
+                control={control}
+                render={({ field: { onChange, value } }) => {
+                  const currentValues = Array.isArray(value) ? value : [];
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {field.options?.map((option) => (
+                        <div 
+                          key={option} 
+                          className="flex items-center space-x-3 bg-zinc-900/30 p-3 rounded-xl border border-zinc-800/50 hover:bg-zinc-900/60 transition-colors cursor-pointer"
+                          onClick={() => {
+                            const nextValue = currentValues.includes(option)
+                              ? currentValues.filter((v: string) => v !== option)
+                              : [...currentValues, option];
+                            onChange(nextValue);
+                          }}
+                        >
+                          <Checkbox
+                            id={`${field.id}-${option}`}
+                            checked={currentValues.includes(option)}
+                            onCheckedChange={() => {}} // Handled by div click
+                            className="border-zinc-700 data-[state=checked]:bg-white data-[state=checked]:text-black"
+                          />
+                          <Label htmlFor={`${field.id}-${option}`} className="flex-1 cursor-pointer text-zinc-300">{option}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }}
               />
             )}
 

@@ -1,0 +1,136 @@
+{
+  "id": "e3b0c4425b0e11640f18194e846f9283b400159e",
+  "title": "高中生社团/工作室招新报名表",
+  "description": "专业简洁的社团招新表，支持分支逻辑跳转与多选题",
+  "fields": [
+    {
+      "id": "q1",
+      "label": "姓名",
+      "type": "text",
+      "placeholder": "请输入您的姓名",
+      "required": true
+    },
+    {
+      "id": "q2",
+      "label": "年级",
+      "type": "select",
+      "placeholder": "请选择",
+      "options": [
+        "G9",
+        "G10",
+        "G11",
+        "G12"
+      ],
+      "required": true
+    },
+    {
+      "id": "q3",
+      "label": "部门选择",
+      "type": "select",
+      "placeholder": "请选择",
+      "options": [
+        "A. 技术开发部 (Dev)",
+        "B. 设计与创意部 (Design)",
+        "C. 运营与策划部 (Ops)"
+      ],
+      "required": true
+    },
+    {
+      "id": "q4",
+      "label": "编程语言/技术栈",
+      "type": "multi-select",
+      "placeholder": "请选择",
+      "options": [
+        "Python",
+        "Java",
+        "JavaScript/TypeScript",
+        "React/Vue",
+        "Unity/C#",
+        "Swift",
+        "其他"
+      ],
+      "required": false
+    },
+    {
+      "id": "q5",
+      "label": "GitHub主页/项目链接",
+      "type": "text",
+      "placeholder": "请留下你的 GitHub 主页或过往项目链接",
+      "required": false
+    },
+    {
+      "id": "q6",
+      "label": "设计工具",
+      "type": "multi-select",
+      "placeholder": "请选择",
+      "options": [
+        "Figma",
+        "Photoshop",
+        "Illustrator",
+        "Procreate",
+        "Blender",
+        "剪映/Pr"
+      ],
+      "required": false
+    },
+    {
+      "id": "q7",
+      "label": "作品集/链接",
+      "type": "file",
+      "placeholder": "请上传你的作品集或展示链接",
+      "required": false
+    },
+    {
+      "id": "q8",
+      "label": "活动策划",
+      "type": "textarea",
+      "placeholder": "如果你为社团策划一场活动，有什么初步的想法？",
+      "required": false
+    },
+    {
+      "id": "q9",
+      "label": "文案经验",
+      "type": "select",
+      "placeholder": "请选择",
+      "options": [
+        "有（请在面试时展示）",
+        "没有但愿意学",
+        "完全没有"
+      ],
+      "required": false
+    },
+    {
+      "id": "q10",
+      "label": "期望收获",
+      "type": "multi-select",
+      "placeholder": "请选择",
+      "options": [
+        "项目实战经验",
+        "结识大佬",
+        "单纯觉得好玩",
+        "丰富简历"
+      ],
+      "required": false
+    },
+    {
+      "id": "q11",
+      "label": "面试时间",
+      "type": "date-time",
+      "placeholder": "下周通过初筛的方便面试时间",
+      "options": [
+        "周一中午",
+        "周三下午",
+        "周五放学后"
+      ],
+      "required": false
+    },
+    {
+      "id": "q12",
+      "label": "其他说明",
+      "type": "text",
+      "placeholder": "还有什么想对我们说的吗？（可选）",
+      "required": false
+    }
+  ],
+  "createdAt": 1717026223
+}
