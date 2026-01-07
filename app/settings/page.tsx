@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, Save } from 'lucide-react';
+import { Save, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
+import { Sidebar } from '@/components/Sidebar';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -20,7 +21,6 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    // Load settings from cookies on mount
     const savedProvider = Cookies.get('ai_provider') || 'openai';
     const savedApiKey = Cookies.get('ai_api_key') || '';
     const savedBaseUrl = Cookies.get('ai_base_url') || 'http://127.0.0.1:11434/v1';
@@ -43,100 +43,141 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      <header className="bg-white dark:bg-gray-800 border-b px-6 py-4 flex items-center gap-4 sticky top-0 z-10">
-        <Link href="/">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-5 w-5" />
+    <div className="h-screen flex bg-[#09090b] text-zinc-100 overflow-hidden font-sans">
+      <Sidebar className="hidden md:flex" />
+
+      <main className="flex-1 flex flex-col overflow-hidden relative">
+        {/* Header */}
+        <header className="bg-zinc-950/50 backdrop-blur-md border-b border-zinc-900/50 px-8 py-6 flex items-center justify-between sticky top-0 z-50">
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 rounded-xl bg-zinc-900 flex items-center justify-center border border-zinc-800">
+              <SettingsIcon className="h-5 w-5 text-zinc-400" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">System Settings</h1>
+              <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest mt-0.5">Configuration Panel</p>
+            </div>
+          </div>
+          
+          <Button 
+            onClick={handleSave} 
+            className="bg-white text-black hover:bg-zinc-200 font-bold px-8 rounded-xl transition-all shadow-[0_0_20px_rgba(255,255,255,0.05)]"
+          >
+            <Save className="mr-2 h-4 w-4" />
+            {saved ? 'Changes Saved' : 'Save Configuration'}
           </Button>
-        </Link>
-        <h1 className="text-xl font-semibold">Settings</h1>
-      </header>
+        </header>
 
-      <main className="flex-1 container mx-auto p-6 max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>AI Configuration</CardTitle>
-            <CardDescription>
-              Configure which AI model and provider to use for form generation.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <div className="flex-1 overflow-y-auto p-8 md:p-12 custom-scrollbar">
+          <div className="max-w-2xl mx-auto w-full space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <section className="space-y-6">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-1 h-4 bg-white rounded-full" />
+                <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-zinc-400">Intelligence Provider</h2>
+              </div>
+              
+              <Card className="bg-zinc-950 border-zinc-800/50 rounded-[2rem] overflow-hidden shadow-2xl">
+                <CardContent className="p-8 space-y-8">
+                  <RadioGroup 
+                    value={provider} 
+                    onValueChange={(val) => {
+                      setProvider(val);
+                      if (val === 'openai' && model === 'llama3') setModel('gpt-4o');
+                      if (val === 'ollama' && model === 'gpt-4o') setModel('llama3');
+                    }}
+                    className="grid grid-cols-2 gap-4"
+                  >
+                    {[
+                      { id: 'openai', label: 'OpenAI Cloud', desc: 'GPT-4o / GPT-3.5' },
+                      { id: 'ollama', label: 'Ollama Local', desc: 'Llama3 / Mistral' }
+                    ].map((item) => (
+                      <div key={item.id} className="relative">
+                        <RadioGroupItem value={item.id} id={item.id} className="peer sr-only" />
+                        <Label 
+                          htmlFor={item.id}
+                          className="flex flex-col gap-1 p-6 rounded-2xl border border-zinc-900 bg-zinc-900/20 hover:bg-zinc-900/40 cursor-pointer transition-all peer-data-[state=checked]:border-white peer-data-[state=checked]:bg-zinc-900/60 group"
+                        >
+                          <span className="text-sm font-bold text-zinc-300 group-hover:text-white transition-colors">{item.label}</span>
+                          <span className="text-[10px] text-zinc-600 font-medium">{item.desc}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+
+                  <div className="space-y-6 pt-4 border-t border-zinc-900/50">
+                    {provider === 'openai' ? (
+                      <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="apiKey" className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">API Authentication</Label>
+                          <div className="flex items-center gap-1.5 text-[10px] text-zinc-700 font-bold">
+                            <ShieldCheck className="h-3 w-3" />
+                            CLIENT-SIDE ENCRYPTED
+                          </div>
+                        </div>
+                        <Input 
+                          id="apiKey" 
+                          type="password" 
+                          placeholder="sk-................................................" 
+                          className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 font-mono"
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <Label htmlFor="baseUrl" className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Ollama Node URL</Label>
+                        <Input 
+                          id="baseUrl" 
+                          placeholder="http://127.0.0.1:11434/v1" 
+                          className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 font-mono"
+                          value={baseUrl}
+                          onChange={(e) => setBaseUrl(e.target.value)}
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      <Label htmlFor="model" className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Neural Model Target</Label>
+                      <Input 
+                        id="model" 
+                        placeholder={provider === 'openai' ? "gpt-4o" : "llama3"} 
+                        className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 font-mono"
+                        value={model}
+                        onChange={(e) => setModel(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
             
-            <div className="space-y-3">
-              <Label>AI Provider</Label>
-              <RadioGroup 
-                value={provider} 
-                onValueChange={(val) => {
-                  setProvider(val);
-                  // Set default models when switching
-                  if (val === 'openai' && model === 'llama3') setModel('gpt-4o');
-                  if (val === 'ollama' && model === 'gpt-4o') setModel('llama3');
-                }}
-                className="flex flex-col space-y-1"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="openai" id="openai" />
-                  <Label htmlFor="openai">OpenAI (Cloud)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="ollama" id="ollama" />
-                  <Label htmlFor="ollama">Ollama (Local)</Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            {provider === 'openai' && (
-              <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                <Label htmlFor="apiKey">OpenAI API Key</Label>
-                <Input 
-                  id="apiKey" 
-                  type="password" 
-                  placeholder="sk-..." 
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Your key is stored locally in your browser cookies.
+            <div className="p-8 rounded-[2rem] border border-zinc-900 bg-zinc-950/30 flex items-start gap-4">
+              <div className="h-10 w-10 rounded-xl bg-zinc-900 flex items-center justify-center shrink-0 border border-zinc-800">
+                 <ShieldCheck className="h-5 w-5 text-zinc-500" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-zinc-300">Data Privacy Note</h3>
+                <p className="text-xs text-zinc-600 leading-relaxed">
+                  All configuration parameters, including API keys, are stored exclusively within your browser's local storage (cookies). No sensitive data is ever transmitted to our servers.
                 </p>
               </div>
-            )}
-
-            {provider === 'ollama' && (
-              <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                <Label htmlFor="baseUrl">Base URL</Label>
-                <Input 
-                  id="baseUrl" 
-                  placeholder="http://127.0.0.1:11434/v1" 
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Point this to your local Ollama instance (OpenAI compatible endpoint).
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="model">Model Name</Label>
-              <Input 
-                id="model" 
-                placeholder={provider === 'openai' ? "gpt-4o" : "llama3"} 
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Examples: {provider === 'openai' ? 'gpt-4o, gpt-3.5-turbo' : 'llama3, mistral, deepseek-coder'}
-              </p>
             </div>
-
-            <Button onClick={handleSave} className="w-full">
-              {saved ? 'Settings Saved!' : 'Save Settings'}
-            </Button>
-
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </main>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #18181b;
+          border-radius: 10px;
+        }
+      `}</style>
     </div>
   );
 }

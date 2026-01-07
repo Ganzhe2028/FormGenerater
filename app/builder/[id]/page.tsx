@@ -11,6 +11,8 @@ import { ArrowLeft, Share2, Eye, BarChart3, FileEdit, Download, Pencil, Check, X
 import Link from 'next/link';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { cn } from '@/lib/utils';
+import { Sidebar } from '@/components/Sidebar';
 
 export default function BuilderPage() {
   const params = useParams();
@@ -27,13 +29,11 @@ export default function BuilderPage() {
   useEffect(() => {
     setMounted(true);
     if (id) {
-      // Try local store first for instant load
       const foundForm = getForm(id);
       if (foundForm) {
         setForm(foundForm);
         setTitleInput(foundForm.title);
       } else {
-        // Fallback to API
         fetch(`/api/forms/${id}`)
           .then(res => res.ok ? res.json() : null)
           .then(data => {
@@ -44,7 +44,6 @@ export default function BuilderPage() {
           });
       }
       
-      // Fetch submissions
       fetch(`/api/forms/${id}/submissions`)
         .then(res => res.json())
         .then(data => setSubmissions(data))
@@ -60,7 +59,7 @@ export default function BuilderPage() {
     }
 
     const updatedForm = { ...form, title: titleInput };
-    setForm(updatedForm); // Optimistic update
+    setForm(updatedForm);
     setIsEditingTitle(false);
 
     try {
@@ -69,11 +68,9 @@ export default function BuilderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: titleInput }),
       });
-      // Also update global store if needed
       useFormStore.getState().addForm(updatedForm);
     } catch (error) {
       console.error('Failed to update title:', error);
-      // Revert on error
       setForm(form);
       setTitleInput(form.title);
     }
@@ -83,12 +80,15 @@ export default function BuilderPage() {
 
   if (!form) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-2xl font-bold">Form not found</h1>
-        <p className="text-muted-foreground">This form does not exist or was not saved locally.</p>
-        <Link href="/">
-          <Button variant="link" className="mt-4">Go Home</Button>
-        </Link>
+      <div className="flex h-screen bg-[#09090b] text-zinc-100">
+        <Sidebar />
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <h1 className="text-2xl font-bold">Form not found</h1>
+          <p className="text-zinc-500">This form does not exist or was not saved locally.</p>
+          <Link href="/">
+            <Button variant="link" className="mt-4 text-zinc-400">Go Home</Button>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -103,26 +103,15 @@ export default function BuilderPage() {
 
   const exportData = async (type: 'csv' | 'xlsx') => {
     if (!submissions.length) return;
-
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Submissions');
-
-    // Define columns
     const columns = [
       { header: 'Submitted At', key: 'submittedAt', width: 25 },
-      ...form.fields.map((field: any) => ({
-        header: field.label,
-        key: field.id,
-        width: 20
-      }))
+      ...form.fields.map((field: any) => ({ header: field.label, key: field.id, width: 20 }))
     ];
     worksheet.columns = columns;
-
-    // Add rows
     submissions.forEach(sub => {
-      const row: any = {
-        submittedAt: new Date(sub.submittedAt).toLocaleString(),
-      };
+      const row: any = { submittedAt: new Date(sub.submittedAt).toLocaleString() };
       form.fields.forEach((field: any) => {
         let value = sub.data[field.id];
         if (Array.isArray(value)) value = value.join(', ');
@@ -130,10 +119,7 @@ export default function BuilderPage() {
       });
       worksheet.addRow(row);
     });
-
-    // Generate file and trigger download
     const fileName = `${form.title.replace(/\s+/g, '_')}_submissions_${new Date().toISOString().split('T')[0]}`;
-
     if (type === 'xlsx') {
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -146,194 +132,221 @@ export default function BuilderPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10 relative">
-        <div className="flex items-center gap-4 max-w-[30%] z-20">
-          <Link href="/">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          {isEditingTitle ? (
-            <div className="flex items-center gap-2 w-full">
-              <Input
-                value={titleInput}
-                onChange={(e) => setTitleInput(e.target.value)}
-                className="h-8 min-w-[150px] w-full"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') saveTitle();
-                  if (e.key === 'Escape') {
-                    setIsEditingTitle(false);
-                    setTitleInput(form.title);
-                  }
-                }}
-              />
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 shrink-0" onClick={saveTitle}>
-                <Check className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600 shrink-0" onClick={() => {
-                setIsEditingTitle(false);
-                setTitleInput(form.title);
-              }}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 group overflow-hidden">
-              <h1 className="text-xl font-semibold truncate cursor-pointer hover:underline decoration-dashed underline-offset-4" onClick={() => setIsEditingTitle(true)}>
-                {form.title}
-              </h1>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                onClick={() => setIsEditingTitle(true)}
-              >
-                <Pencil className="h-3 w-3 text-gray-500" />
-              </Button>
-            </div>
-          )}
-        </div>
-        
-        {/* Tab Switcher */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex bg-gray-100 p-1 rounded-lg shadow-sm z-10">
-          <button
-            onClick={() => setActiveTab('builder')}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-              activeTab === 'builder' 
-                ? 'bg-white shadow-sm text-black' 
-                : 'text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <FileEdit className="w-4 h-4" />
+    <div className="h-screen flex bg-[#09090b] text-zinc-100 overflow-hidden font-sans">
+      <Sidebar className="hidden md:flex" />
+
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {/* Header */}
+        <header className="bg-zinc-950/50 backdrop-blur-md border-b border-zinc-900/50 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+          <div className="flex items-center gap-4 max-w-[30%]">
+            {isEditingTitle ? (
+              <div className="flex items-center gap-2 w-full">
+                <Input
+                  value={titleInput}
+                  onChange={(e) => setTitleInput(e.target.value)}
+                  className="h-8 min-w-[150px] w-full bg-zinc-900 border-zinc-800 text-sm"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveTitle();
+                    if (e.key === 'Escape') {
+                      setIsEditingTitle(false);
+                      setTitleInput(form.title);
+                    }
+                  }}
+                />
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-500 hover:bg-green-500/10 shrink-0" onClick={saveTitle}>
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:bg-red-500/10 shrink-0" onClick={() => {
+                  setIsEditingTitle(false);
+                  setTitleInput(form.title);
+                }}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 group overflow-hidden">
+                <h1 className="text-sm font-bold truncate cursor-pointer hover:text-white transition-colors" onClick={() => setIsEditingTitle(true)}>
+                  {form.title}
+                </h1>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-zinc-500"
+                  onClick={() => setIsEditingTitle(true)}
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          {/* Tab Switcher - Premium Style */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex bg-zinc-900/50 border border-zinc-900/50 p-1 rounded-xl shadow-2xl">
+            <button
+              onClick={() => setActiveTab('builder')}
+              className={cn(
+                "px-5 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all flex items-center gap-2",
+                activeTab === 'builder' 
+                  ? "bg-zinc-100 text-black shadow-[0_0_15px_rgba(255,255,255,0.1)]" 
+                  : "text-zinc-500 hover:text-zinc-300"
+              )}
+            >
+              <FileEdit className="w-3 h-3" />
               Builder
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('submissions')}
-            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-              activeTab === 'submissions' 
-                ? 'bg-white shadow-sm text-black' 
-                : 'text-gray-500 hover:text-gray-900'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setActiveTab('submissions')}
+              className={cn(
+                "px-5 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all flex items-center gap-2",
+                activeTab === 'submissions' 
+                  ? "bg-zinc-100 text-black shadow-[0_0_15px_rgba(255,255,255,0.1)]" 
+                  : "text-zinc-500 hover:text-zinc-300"
+              )}
+            >
+              <BarChart3 className="w-3 h-3" />
               Submissions
               {submissions.length > 0 && (
-                <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full text-xs">
+                <span className="bg-zinc-800 text-zinc-300 px-1.5 py-0.5 rounded-full text-[9px]">
                   {submissions.length}
                 </span>
               )}
-            </div>
-          </button>
-        </div>
+            </button>
+          </div>
 
-        <div className="flex items-center gap-2 z-20">
-           <Link href={`/view/${form.id}`} target="_blank">
-            <Button variant="outline">
-              <Eye className="mr-2 h-4 w-4" />
-              Preview
+          <div className="flex items-center gap-3">
+             <Link href={`/view/${form.id}`} target="_blank">
+              <Button variant="ghost" size="sm" className="text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100 text-xs">
+                <Eye className="mr-2 h-3.5 w-3.5" />
+                Preview
+              </Button>
+            </Link>
+            <Button 
+              size="sm"
+              className="bg-white text-black hover:bg-zinc-200 font-bold px-4 rounded-lg transition-all shadow-[0_0_20px_rgba(255,255,255,0.05)] text-xs"
+              onClick={copyLink}
+            >
+              <Share2 className="mr-2 h-3.5 w-3.5" />
+              {copied ? 'Copied!' : 'Share'}
             </Button>
-          </Link>
-          <Button onClick={copyLink}>
-            <Share2 className="mr-2 h-4 w-4" />
-            {copied ? 'Copied!' : 'Share'}
-          </Button>
-        </div>
-      </header>
+          </div>
+        </header>
 
-      {/* Main Content */}
-      <main className="flex-1 container mx-auto p-6 md:p-12 flex justify-center">
-        {activeTab === 'builder' ? (
-          <div className="w-full max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <FormRenderer schema={form} isPreview={true} />
-            
-            <Card className="mt-8">
-              <CardHeader>
-                <CardTitle>Share your form</CardTitle>
-                <CardDescription>
-                  Share this link with others to start collecting responses.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex gap-2">
-                <Input value={publicUrl} readOnly />
-                <Button onClick={copyLink} variant="secondary">
-                  {copied ? 'Copied' : 'Copy'}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <div className="w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
-                <div>
-                  <CardTitle>Submissions</CardTitle>
-                  <CardDescription>View all responses collected for this form.</CardDescription>
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-8 md:p-12 custom-scrollbar">
+          <div className="max-w-4xl mx-auto w-full">
+            {activeTab === 'builder' ? (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
+                <div className="bg-zinc-950 border border-zinc-900/50 rounded-[2.5rem] p-1 shadow-2xl shadow-black/50">
+                  <FormRenderer schema={form} isPreview={true} />
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => exportData('csv')}>
-                    <Download className="mr-2 h-4 w-4" />
-                    CSV
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => exportData('xlsx')}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Excel
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {submissions.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    No submissions yet. Share your form to get started!
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-gray-50 text-gray-700 uppercase">
-                        <tr>
-                          <th className="px-6 py-3">Submitted At</th>
-                          {form.fields.slice(0, 3).map((field: any) => (
-                            <th key={field.id} className="px-6 py-3 truncate max-w-[150px]">
-                              {field.label}
-                            </th>
-                          ))}
-                          <th className="px-6 py-3">View</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {submissions.map((sub) => (
-                          <tr key={sub.id} className="border-b hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {new Date(sub.submittedAt).toLocaleString()}
-                            </td>
-                            {form.fields.slice(0, 3).map((field: any) => (
-                              <td key={field.id} className="px-6 py-4 truncate max-w-[200px]">
-                                {typeof sub.data[field.id] === 'object' 
-                                  ? JSON.stringify(sub.data[field.id]) 
-                                  : sub.data[field.id]?.toString() || '-'}
-                              </td>
+                
+                <Card className="bg-zinc-900/10 border-zinc-900 border-dashed rounded-[2rem] overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-bold text-zinc-200">Public Access Link</CardTitle>
+                    <CardDescription className="text-zinc-600 text-xs">
+                      Share this unique URL to collect responses from anyone.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex gap-3 pb-6">
+                    <Input 
+                      value={publicUrl} 
+                      readOnly 
+                      className="bg-zinc-950 border-zinc-900 text-zinc-500 focus-visible:ring-0 font-mono text-[11px] rounded-xl"
+                    />
+                    <Button onClick={copyLink} variant="secondary" className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border-zinc-800 rounded-xl px-6 text-xs font-bold">
+                      {copied ? 'Copied' : 'Copy'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <Card className="bg-zinc-950 border-zinc-900/50 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                  <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-900/50 pb-6 p-8">
+                    <div>
+                      <CardTitle className="text-xl font-bold text-white">Submissions</CardTitle>
+                      <CardDescription className="text-zinc-600 text-xs uppercase tracking-widest font-bold mt-1">Data Insights</CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="sm" className="text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300 text-[10px] font-bold uppercase tracking-widest" onClick={() => exportData('csv')}>
+                        <Download className="mr-2 h-3 w-3" />
+                        CSV
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300 text-[10px] font-bold uppercase tracking-widest" onClick={() => exportData('xlsx')}>
+                        <Download className="mr-2 h-3 w-3" />
+                        Excel
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {submissions.length === 0 ? (
+                      <div className="text-center py-32 text-zinc-700 italic font-medium text-sm">
+                        Waiting for first response...
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs text-left">
+                          <thead className="bg-zinc-900/30 text-zinc-600 font-bold uppercase tracking-[0.2em] text-[9px] border-b border-zinc-900/50">
+                            <tr>
+                              <th className="px-8 py-5">Time</th>
+                              {form.fields.slice(0, 3).map((field: any) => (
+                                <th key={field.id} className="px-8 py-5 truncate max-w-[150px]">
+                                  {field.label}
+                                </th>
+                              ))}
+                              <th className="px-8 py-5 text-right">Details</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-900/30">
+                            {submissions.map((sub) => (
+                              <tr key={sub.id} className="hover:bg-zinc-900/20 transition-colors group">
+                                <td className="px-8 py-6 text-zinc-500 whitespace-nowrap">
+                                  {new Date(sub.submittedAt).toLocaleDateString()}
+                                </td>
+                                {form.fields.slice(0, 3).map((field: any) => (
+                                  <td key={field.id} className="px-8 py-6 truncate max-w-[200px] text-zinc-300">
+                                    {typeof sub.data[field.id] === 'object' 
+                                      ? JSON.stringify(sub.data[field.id]) 
+                                      : sub.data[field.id]?.toString() || '-'}
+                                  </td>
+                                ))}
+                                <td className="px-8 py-6 text-right">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-zinc-600 hover:text-zinc-100 hover:bg-zinc-900 rounded-lg h-8 text-[10px] font-bold uppercase"
+                                    onClick={() => alert(JSON.stringify(sub.data, null, 2))}
+                                  >
+                                    View
+                                  </Button>
+                                </td>
+                              </tr>
                             ))}
-                            <td className="px-6 py-4">
-                              <Button variant="ghost" size="sm" onClick={() => alert(JSON.stringify(sub.data, null, 2))}>
-                                Details
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
-        )}
-      </main>
+        </main>
+      </div>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #18181b;
+          border-radius: 10px;
+        }
+      `}</style>
     </div>
   );
 }

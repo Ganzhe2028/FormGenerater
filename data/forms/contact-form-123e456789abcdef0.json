@@ -1,0 +1,29 @@
+{
+  "id": "contact-form-123e456789abcdef0",
+  "title": "Contact Form",
+  "description": "",
+  "fields": [
+    {
+      "id": "name",
+      "label": "Name",
+      "type": "text",
+      "placeholder": "Your name",
+      "required": true
+    },
+    {
+      "id": "email",
+      "label": "Email",
+      "type": "email",
+      "placeholder": "Your email",
+      "required": true
+    },
+    {
+      "id": "message",
+      "label": "Message",
+      "type": "textarea",
+      "placeholder": "Your message",
+      "required": true
+    }
+  ],
+  "createdAt": 1717029960000
+}

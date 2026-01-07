@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface FormRendererProps {
   schema: FormSchema;
@@ -27,7 +27,6 @@ interface FormRendererProps {
 }
 
 export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRendererProps) {
-  // Dynamically generate Zod schema
   const generateZodSchema = (fields: FormField[]) => {
     const shape: any = {};
     fields.forEach((field) => {
@@ -110,7 +109,6 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
   const visibleFields = getVisibleFields();
 
   const handleFormSubmit = (data: FormData) => {
-    // Filter out data from hidden fields
     const visibleIds = new Set(visibleFields.map(f => f.id));
     const filteredData = Object.fromEntries(
       Object.entries(data as Record<string, any>).filter(([key]) => visibleIds.has(key))
@@ -124,156 +122,169 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-md">
-      <CardHeader>
-        <CardTitle>{schema.title}</CardTitle>
-        {schema.description && <CardDescription>{schema.description}</CardDescription>}
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-          {visibleFields.map((field) => (
-            <div key={field.id} className="space-y-2 animate-in fade-in slide-in-from-top-4 duration-300">
-              <Label htmlFor={field.id}>
-                {field.label} {field.required && <span className="text-red-500">*</span>}
-              </Label>
+    <div className="w-full bg-zinc-950 p-8 md:p-12 rounded-[2rem] border border-zinc-800 shadow-2xl">
+      <div className="mb-10 space-y-3">
+        <h2 className="text-3xl font-extrabold tracking-tight text-white">{schema.title}</h2>
+        {schema.description && (
+          <p className="text-zinc-500 font-medium leading-relaxed">{schema.description}</p>
+        )}
+      </div>
 
-              {field.type === 'text' && (
-                <Input
-                  id={field.id}
-                  placeholder={field.placeholder}
-                  {...register(field.id)}
-                />
-              )}
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
+        {visibleFields.map((field) => (
+          <div key={field.id} className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
+            <Label htmlFor={field.id} className="text-sm font-bold text-zinc-400 flex items-center gap-1.5">
+              {field.label} 
+              {field.required && <span className="text-red-500/80 text-lg leading-none">*</span>}
+            </Label>
 
-              {field.type === 'email' && (
-                <Input
-                  id={field.id}
-                  type="email"
-                  placeholder={field.placeholder}
-                  {...register(field.id)}
-                />
-              )}
+            {field.type === 'text' && (
+              <Input
+                id={field.id}
+                placeholder={field.placeholder}
+                className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 transition-all placeholder:text-zinc-700"
+                {...register(field.id)}
+              />
+            )}
 
-              {field.type === 'number' && (
-                <Input
-                  id={field.id}
-                  type="number"
-                  placeholder={field.placeholder}
-                  {...register(field.id)}
-                />
-              )}
+            {field.type === 'email' && (
+              <Input
+                id={field.id}
+                type="email"
+                placeholder={field.placeholder}
+                className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 transition-all placeholder:text-zinc-700"
+                {...register(field.id)}
+              />
+            )}
 
-              {field.type === 'textarea' && (
-                <Textarea
-                  id={field.id}
-                  placeholder={field.placeholder}
-                  {...register(field.id)}
-                />
-              )}
+            {field.type === 'number' && (
+              <Input
+                id={field.id}
+                type="number"
+                placeholder={field.placeholder}
+                className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 transition-all placeholder:text-zinc-700"
+                {...register(field.id)}
+              />
+            )}
 
-              {field.type === 'select' && (
-                <Controller
-                  name={field.id}
-                  control={control}
-                  render={({ field: { onChange, value } }) => (
-                    <Select onValueChange={onChange} defaultValue={value as string}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={field.placeholder || "Select an option"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {field.options?.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              )}
+            {field.type === 'textarea' && (
+              <Textarea
+                id={field.id}
+                placeholder={field.placeholder}
+                className="bg-zinc-900/50 border-zinc-800 text-zinc-100 min-h-[120px] rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 transition-all placeholder:text-zinc-700"
+                {...register(field.id)}
+              />
+            )}
 
-              {field.type === 'radio' && (
-                <Controller
-                  name={field.id}
-                  control={control}
-                  render={({ field: { onChange, value } }) => (
-                    <RadioGroup onValueChange={onChange} defaultValue={value as string}>
+            {field.type === 'select' && (
+              <Controller
+                name={field.id}
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <Select onValueChange={onChange} defaultValue={value as string}>
+                    <SelectTrigger className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus:ring-1 focus:ring-zinc-700 transition-all">
+                      <SelectValue placeholder={field.placeholder || "Select an option"} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
                       {field.options?.map((option) => (
-                        <div key={option} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option} id={`${field.id}-${option}`} />
-                          <Label htmlFor={`${field.id}-${option}`}>{option}</Label>
-                        </div>
+                        <SelectItem key={option} value={option} className="focus:bg-zinc-800 focus:text-white">
+                          {option}
+                        </SelectItem>
                       ))}
-                    </RadioGroup>
-                  )}
-                />
-              )}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            )}
 
-              {field.type === 'rating' && (
-                <Controller
-                  name={field.id}
-                  control={control}
-                  render={({ field: { onChange, value } }) => (
-                    <RadioGroup 
-                      onValueChange={onChange} 
-                      defaultValue={value ? String(value) : undefined}
-                      className="flex gap-2"
+            {field.type === 'radio' && (
+              <Controller
+                name={field.id}
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <RadioGroup onValueChange={onChange} defaultValue={value as string} className="gap-3">
+                    {field.options?.map((option) => (
+                      <div key={option} className="flex items-center space-x-3 bg-zinc-900/30 p-3 rounded-xl border border-zinc-800/50 hover:bg-zinc-900/60 transition-colors cursor-pointer" onClick={() => onChange(option)}>
+                        <RadioGroupItem value={option} id={`${field.id}-${option}`} className="border-zinc-700 text-zinc-100" />
+                        <Label htmlFor={`${field.id}-${option}`} className="flex-1 cursor-pointer text-zinc-300">{option}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            )}
+
+            {field.type === 'rating' && (
+              <Controller
+                name={field.id}
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <RadioGroup 
+                    onValueChange={onChange} 
+                    defaultValue={value ? String(value) : undefined}
+                    className="flex gap-3"
+                  >
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <div key={rating} className="flex flex-col items-center flex-1">
+                        <RadioGroupItem 
+                          value={String(rating)} 
+                          id={`${field.id}-${rating}`} 
+                          className="peer sr-only"
+                        />
+                        <Label 
+                          htmlFor={`${field.id}-${rating}`}
+                          className="flex h-14 w-full cursor-pointer items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/30 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100 peer-data-[state=checked]:bg-white peer-data-[state=checked]:text-black peer-data-[state=checked]:border-white font-bold transition-all text-lg"
+                        >
+                          {rating}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                )}
+              />
+            )}
+
+            {field.type === 'checkbox' && (
+              <Controller
+                name={field.id}
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <div className="flex items-center space-x-3 bg-zinc-900/30 p-4 rounded-xl border border-zinc-800/50">
+                    <Checkbox
+                      id={field.id}
+                      checked={value as boolean}
+                      onCheckedChange={onChange}
+                      className="border-zinc-700 data-[state=checked]:bg-white data-[state=checked]:text-black"
+                    />
+                    <label
+                      htmlFor={field.id}
+                      className="text-sm font-medium text-zinc-300 cursor-pointer"
                     >
-                      {[1, 2, 3, 4, 5].map((rating) => (
-                        <div key={rating} className="flex flex-col items-center">
-                          <RadioGroupItem 
-                            value={String(rating)} 
-                            id={`${field.id}-${rating}`} 
-                            className="peer sr-only"
-                          />
-                          <Label 
-                            htmlFor={`${field.id}-${rating}`}
-                            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border-2 border-muted bg-popover hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-black peer-data-[state=checked]:text-black font-semibold transition-all"
-                          >
-                            {rating}
-                          </Label>
-                        </div>
-                      ))}
-                    </RadioGroup>
-                  )}
-                />
-              )}
+                      {field.placeholder || "Confirm/Yes"}
+                    </label>
+                  </div>
+                )}
+              />
+            )}
 
-              {field.type === 'checkbox' && (
-                <Controller
-                  name={field.id}
-                  control={control}
-                  render={({ field: { onChange, value } }) => (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={field.id}
-                        checked={value as boolean}
-                        onCheckedChange={onChange}
-                      />
-                      <label
-                        htmlFor={field.id}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {field.placeholder || "Yes"}
-                      </label>
-                    </div>
-                  )}
-                />
-              )}
+            {errors[field.id] && (
+              <p className="text-xs font-bold text-red-500/80 uppercase tracking-widest pl-1">
+                {errors[field.id]?.message as string}
+              </p>
+            )}
+          </div>
+        ))}
 
-              {errors[field.id] && (
-                <p className="text-sm text-red-500">
-                  {errors[field.id]?.message as string}
-                </p>
-              )}
-            </div>
-          ))}
-
-          <Button type="submit" disabled={isPreview} className="w-full">
-            Submit
+        <div className="pt-6">
+          <Button 
+            type="submit" 
+            disabled={isPreview} 
+            className="w-full h-14 bg-white text-black hover:bg-zinc-200 font-bold rounded-2xl text-lg shadow-[0_0_30px_rgba(255,255,255,0.05)] transition-all active:scale-[0.98] disabled:bg-zinc-800 disabled:text-zinc-600"
+          >
+            {isPreview ? "Preview Only" : "Submit response"}
           </Button>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+      </form>
+    </div>
   );
 }
