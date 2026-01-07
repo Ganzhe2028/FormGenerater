@@ -201,11 +201,11 @@ export default function Home() {
         <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-3xl mx-auto w-full">
           <div className="w-full space-y-8 animate-in fade-in zoom-in-95 duration-500">
             {!isLoading && (
-              <div className="text-center space-y-3 mb-4">
-                <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-zinc-900 dark:text-white">
+              <div className="text-center space-y-4 mb-4">
+                <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
                   What should we build?
                 </h1>
-                <p className="text-lg text-zinc-500 dark:text-zinc-400 font-medium">
+                <p className="text-xl text-zinc-500 dark:text-zinc-400 font-medium max-w-lg mx-auto">
                   Explain your form ideas in natural language.
                 </p>
               </div>

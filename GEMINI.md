@@ -1,25 +1,23 @@
-# Project Context: AI Form Generator
+# Project Context: Monk Form (AI Form Engine)
 
 ## 1. Project Overview
-This project is a **Text-to-Form** web application built with **Next.js 16 (App Router)** and **React 19**. It allows users to generate functional, interactive HTML forms by describing them in natural language. The application uses an LLM (via OpenAI SDK) to generate a strict JSON schema which is then rendered into a UI. Forms and submissions are persisted server-side.
+**Monk Form** is a high-performance, AI-powered **Text-to-Form** engine built with **Next.js 16 (App Router)** and **React 19**. It features a **Grok-inspired UI** (minimalist, dark-themed, chat-centric) and allows users to generate complex, multi-logic forms via natural language.
 
-**Goal:** Create a clean, SaaS-like "Makeform.ai" clone.
+**Core Vision:** A lightning-fast, visually premium form builder that bridges the gap between natural language prompts and functional web applications.
 
 ## 2. Technology Stack
-*   **Framework:** Next.js 16 (App Router)
-*   **Language:** TypeScript
-*   **Styling:** Tailwind CSS v4
-*   **UI Library:** Shadcn/UI (Radix UI based) + Lucide React (Icons)
-*   **Persistence:** JSON File DB (`data/db.json`) for forms and submissions.
-*   **Export:** `exceljs` for CSV/Excel export.
-*   **State Management:** Zustand (Client-side), API (Server-side).
-*   **Form Handling:** React Hook Form + Zod.
-*   **AI Integration:** OpenAI SDK (Targeting strict JSON output).
+*   **Framework:** Next.js 16 (App Router, Turbopack)
+*   **Language:** TypeScript (Strict mode)
+*   **Styling:** Tailwind CSS v4 (Custom Zinc/Dark palette)
+*   **UI Library:** Shadcn/UI (Radix UI) + Lucide React (Icons)
+*   **Persistence:** File-per-item architecture (`data/forms/` and `data/submissions/`).
+*   **AI Integration:** OpenAI SDK supporting both OpenAI and local Ollama models.
+*   **Export:** `exceljs` for XLSX/CSV generation.
+*   **State Management:** Zustand (Client) + API (Server).
 
 ## 3. Architecture & Data Model
 
 ### Data Model (`types/index.ts`)
-The application is driven by a strict JSON schema. The core interface is `FormSchema`:
 ```typescript
 interface FormSchema {
   id: string;
@@ -32,48 +30,45 @@ interface FormSchema {
 interface FormField {
   id: string;
   label: string;
-  type: 'text' | 'textarea' | 'number' | 'email' | 'select' | 'checkbox' | 'radio';
+  type: 'text' | 'textarea' | 'number' | 'email' | 'select' | 'checkbox' | 'radio' | 'rating';
   required: boolean;
   options?: string[];
+  logic?: Array<{
+    condition: string; // The trigger value, or '*' for "Always Jump"
+    destination: string; // The target field ID
+  }>;
 }
 ```
 
 ### Core Components
-*   **Generator (`app/page.tsx`)**: Accepts user prompt, calls API to generate and save form.
-*   **Builder (`app/builder/[id]/page.tsx`)**: 
-    *   **Tab 1 (Builder):** Displays form preview and share link.
-    *   **Tab 2 (Submissions):** Displays submission table with **CSV/Excel Export**.
-*   **Viewer (`app/view/[id]/page.tsx`)**: Public-facing page. Fetches form from API, submits data to API.
-*   **FormRenderer (`components/form/FormRenderer.tsx`)**: The engine that takes a `FormSchema` and renders the corresponding UI components.
+*   **Landing Page (`app/page.tsx`)**: Grok-style chat interface with a scrolling history sidebar and a "Neural Log" console for AI generation visibility.
+*   **Builder (`app/builder/[id]/page.tsx`)**: Management interface with live preview, logic configuration, and submission tracking.
+*   **FormRenderer (`components/form/FormRenderer.tsx`)**: The core logic engine handling dynamic field rendering, conditional jumps, and form submission.
 
 ### Data Storage (`lib/db.ts`)
-*   **Backend:** Simple JSON-based database located at `data/db.json`.
-*   **Entities:** Stores `forms` and `submissions`.
-*   **Usage:** Ensures data persistence across server restarts and accessibility across different devices.
-
-### API Routes
-*   `POST /api/generate`: Generates form schema via AI and saves to DB.
-*   `GET /api/forms/[id]`: Retrieves a specific form.
-*   `POST /api/submit`: Saves a new form submission.
-*   `GET /api/forms/[id]/submissions`: Retrieves all submissions for a specific form.
+*   **Strategy:** Decentralized JSON files.
+*   `data/forms/[id].json`: Stores form definitions.
+*   `data/submissions/[formId].json`: Stores an array of submissions for that specific form.
 
 ## 4. Key Directories
 *   `app/`: App Router pages and API routes.
-*   `components/ui/`: Reusable Shadcn UI components.
-*   `components/form/`: Application-specific form components (`FormRenderer`).
-*   `lib/`: Utility functions (`cn`, `db`).
-*   `data/`: Contains `db.json` (runtime database).
-*   `types/`: TypeScript interfaces/types.
-*   `PRD.md`: Product Requirements Document.
+*   `components/form/`: Application-specific logic (`FormRenderer`).
+*   `lib/db.ts`: File-system CRUD operations.
+*   `data/`: Persistent storage (git-ignored for data safety, except placeholders).
+*   `store/`: Client-side state (Zustand).
 
 ## 5. Development Workflow
 
-### Scripts
-*   **Start Dev Server:** `npm run dev` (Default port 3000, or `npm run dev -- -p 3001 -H 0.0.0.0` for network access)
-*   **Build:** `npm run build`
-*   **Lint:** `npm run lint`
+### AI Configuration
+Controlled via the `/settings` page. Users can toggle between OpenAI and Ollama. 
+*   **Ollama Support:** Includes automatic VRAM unloading (`keep_alive: 0`) after generation to save local resources.
 
-### Conventions
-*   **Type Safety:** Strict adherence to `FormSchema`.
-*   **Styling:** Mobile-first, using Tailwind utility classes and `cn()` helper.
-*   **Components:** Modular, "V0-compatible" code style.
+### Scripts
+*   `npm run dev`: Development server with Turbopack.
+*   `npm run build`: Production build and type checking.
+*   `npm run lint`: ESLint check.
+
+### Typography & Design
+*   **Primary Font:** Sans-serif (Geist/Inter).
+*   **Title Style:** `font-extrabold tracking-tight` for a premium SaaS feel.
+*   **Color Palette:** Zinc-based dark mode (`#09090b` background).
