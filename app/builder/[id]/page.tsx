@@ -7,7 +7,7 @@ import { FormRenderer } from '@/components/form/FormRenderer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Share2, Eye, BarChart3, FileEdit, Download } from 'lucide-react';
+import { ArrowLeft, Share2, Eye, BarChart3, FileEdit, Download, Pencil, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -21,6 +21,8 @@ export default function BuilderPage() {
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'builder' | 'submissions'>('builder');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -29,12 +31,16 @@ export default function BuilderPage() {
       const foundForm = getForm(id);
       if (foundForm) {
         setForm(foundForm);
+        setTitleInput(foundForm.title);
       } else {
         // Fallback to API
         fetch(`/api/forms/${id}`)
           .then(res => res.ok ? res.json() : null)
           .then(data => {
-            if (data) setForm(data);
+            if (data) {
+              setForm(data);
+              setTitleInput(data.title);
+            }
           });
       }
       
@@ -45,6 +51,33 @@ export default function BuilderPage() {
         .catch(console.error);
     }
   }, [id, getForm]);
+
+  const saveTitle = async () => {
+    if (!titleInput.trim() || titleInput === form.title) {
+      setIsEditingTitle(false);
+      setTitleInput(form.title);
+      return;
+    }
+
+    const updatedForm = { ...form, title: titleInput };
+    setForm(updatedForm); // Optimistic update
+    setIsEditingTitle(false);
+
+    try {
+      await fetch(`/api/forms/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: titleInput }),
+      });
+      // Also update global store if needed
+      useFormStore.getState().addForm(updatedForm);
+    } catch (error) {
+      console.error('Failed to update title:', error);
+      // Revert on error
+      setForm(form);
+      setTitleInput(form.title);
+    }
+  };
 
   if (!mounted) return null;
 
@@ -122,9 +155,46 @@ export default function BuilderPage() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <h1 className="text-xl font-semibold truncate max-w-[200px] sm:max-w-md">
-            {form.title}
-          </h1>
+          {isEditingTitle ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={titleInput}
+                onChange={(e) => setTitleInput(e.target.value)}
+                className="h-8 w-[200px] sm:w-[300px]"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveTitle();
+                  if (e.key === 'Escape') {
+                    setIsEditingTitle(false);
+                    setTitleInput(form.title);
+                  }
+                }}
+              />
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={saveTitle}>
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={() => {
+                setIsEditingTitle(false);
+                setTitleInput(form.title);
+              }}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 group">
+              <h1 className="text-xl font-semibold truncate max-w-[200px] sm:max-w-md cursor-pointer hover:underline decoration-dashed underline-offset-4" onClick={() => setIsEditingTitle(true)}>
+                {form.title}
+              </h1>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => setIsEditingTitle(true)}
+              >
+                <Pencil className="h-3 w-3 text-gray-500" />
+              </Button>
+            </div>
+          )}
         </div>
         
         {/* Tab Switcher */}

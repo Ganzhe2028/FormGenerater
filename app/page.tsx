@@ -6,18 +6,36 @@ import { useFormStore } from '@/store/formStore';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Settings } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('Generating...');
   const router = useRouter();
   const addForm = useFormStore((state) => state.addForm);
+
+  const loadingMessages = [
+    "Interpreting request...",
+    "Consulting the AI architect...",
+    "Drafting form schema...",
+    "Polishing the UI...",
+    "Finalizing form..."
+  ];
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
     setIsLoading(true);
+    setLoadingText(loadingMessages[0]);
+    
+    let messageIndex = 0;
+    const intervalId = setInterval(() => {
+      messageIndex = (messageIndex + 1) % loadingMessages.length;
+      setLoadingText(loadingMessages[messageIndex]);
+    }, 2000);
+
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -36,12 +54,20 @@ export default function Home() {
       console.error(error);
       alert('Something went wrong. Please try again.');
     } finally {
+      clearInterval(intervalId);
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-900 relative">
+      <div className="absolute top-6 right-6">
+        <Link href="/settings">
+          <Button variant="ghost" className="h-16 w-16 rounded-full">
+            <Settings className="h-10 w-10 text-gray-500 hover:text-gray-900" />
+          </Button>
+        </Link>
+      </div>
       <div className="max-w-xl w-full space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
@@ -74,7 +100,7 @@ export default function Home() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Generating...
+                  {loadingText}
                 </>
               ) : (
                 <>

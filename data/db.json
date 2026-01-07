@@ -122,6 +122,98 @@
           "required": false
         }
       ]
+    },
+    {
+      "id": "8ba42c39-4da5-499c-8f15-0d75268da7a8",
+      "title": "Mock Registration Form",
+      "description": "This is a mock form generated because no API key was provided.",
+      "createdAt": 1767775815153,
+      "fields": [
+        {
+          "id": "name",
+          "label": "Full Name",
+          "type": "text",
+          "placeholder": "John Doe",
+          "required": true
+        },
+        {
+          "id": "email",
+          "label": "Email Address",
+          "type": "email",
+          "placeholder": "john@example.com",
+          "required": true
+        },
+        {
+          "id": "experience",
+          "label": "Years of Experience",
+          "type": "select",
+          "required": true,
+          "options": [
+            "0-1 years",
+            "1-3 years",
+            "3-5 years",
+            "5+ years"
+          ]
+        },
+        {
+          "id": "bio",
+          "label": "Short Bio",
+          "type": "textarea",
+          "placeholder": "Tell us about yourself...",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "50428378-9965-4a47-85ad-bbbd915feae3",
+      "title": "Mock Registration Form (Fallback)",
+      "description": "This form was generated because the AI provider was unavailable.",
+      "createdAt": 1767776392228,
+      "fields": [
+        {
+          "id": "name",
+          "label": "Full Name",
+          "type": "text",
+          "placeholder": "John Doe",
+          "required": true
+        },
+        {
+          "id": "email",
+          "label": "Email Address",
+          "type": "email",
+          "placeholder": "john@example.com",
+          "required": true
+        }
+      ]
+    },
+    {
+      "id": "550e8400-e29b-41d4-a716-47c9c3e6b44d",
+      "title": "Presentation Feedback Form",
+      "description": "Share your thoughts on our presentation.",
+      "fields": [
+        {
+          "id": "name",
+          "label": "Your Name",
+          "type": "text",
+          "placeholder": "Your Name",
+          "required": true
+        },
+        {
+          "id": "email",
+          "label": "Your Email",
+          "type": "email",
+          "placeholder": "example@domain.com",
+          "required": true
+        },
+        {
+          "id": "feedback",
+          "label": "Your Feedback",
+          "type": "textarea",
+          "placeholder": "How can we improve?",
+          "required": false
+        }
+      ],
+      "createdAt": 1717034401234
     }
   ],
   "submissions": [
@@ -146,6 +238,27 @@
         "bio": ""
       },
       "submittedAt": "2026-01-07T04:50:22.857Z"
+    },
+    {
+      "id": "4ea50721-e88f-4a8c-8ca3-658d95d35212",
+      "formId": "8ba42c39-4da5-499c-8f15-0d75268da7a8",
+      "data": {
+        "name": "Isaac Bao",
+        "email": "isaacbao2025@outlook.com",
+        "experience": "0-1 years",
+        "bio": ""
+      },
+      "submittedAt": "2026-01-07T08:50:50.472Z"
+    },
+    {
+      "id": "a69ca9d6-5bdb-42f6-9e24-c3266b2694b4",
+      "formId": "550e8400-e29b-41d4-a716-47c9c3e6b44d",
+      "data": {
+        "name": "Isaac Bao",
+        "email": "isaacbao2025@outlook.com",
+        "feedback": "good"
+      },
+      "submittedAt": "2026-01-07T09:26:58.270Z"
     }
   ]
 }
