@@ -43,6 +43,9 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
         case 'checkbox':
           validator = z.boolean().default(false);
           break;
+        case 'rating':
+          validator = z.coerce.number().min(1).max(5);
+          break;
         default:
           validator = z.string();
       }
@@ -65,17 +68,57 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
     register,
     handleSubmit,
     control,
+    watch,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
   });
 
+  const values = watch();
+
+  const getVisibleFields = () => {
+    const visibleFields: FormField[] = [];
+    let i = 0;
+    while (i < schema.fields.length) {
+      const field = schema.fields[i];
+      visibleFields.push(field);
+
+      const val = values[field.id];
+      let jumped = false;
+
+      if (field.logic && val) {
+        for (const rule of field.logic) {
+          if (String(val) === rule.condition) {
+            const targetIndex = schema.fields.findIndex(f => f.id === rule.destination);
+            if (targetIndex !== -1 && targetIndex > i) {
+              i = targetIndex;
+              jumped = true;
+            }
+            break;
+          }
+        }
+      }
+      
+      if (!jumped) {
+        i++;
+      }
+    }
+    return visibleFields;
+  };
+
+  const visibleFields = getVisibleFields();
+
   const handleFormSubmit = (data: FormData) => {
+    // Filter out data from hidden fields
+    const visibleIds = new Set(visibleFields.map(f => f.id));
+    const filteredData = Object.fromEntries(
+      Object.entries(data as Record<string, any>).filter(([key]) => visibleIds.has(key))
+    );
+    
     if (onSubmit) {
-      onSubmit(data);
+      onSubmit(filteredData);
     } else {
-      console.log('Form Submitted:', data);
-      // MVP: Log to console
+      console.log('Form Submitted:', filteredData);
     }
   };
 
@@ -87,8 +130,8 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-          {schema.fields.map((field) => (
-            <div key={field.id} className="space-y-2">
+          {visibleFields.map((field) => (
+            <div key={field.id} className="space-y-2 animate-in fade-in slide-in-from-top-4 duration-300">
               <Label htmlFor={field.id}>
                 {field.label} {field.required && <span className="text-red-500">*</span>}
               </Label>
@@ -158,6 +201,36 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
                         <div key={option} className="flex items-center space-x-2">
                           <RadioGroupItem value={option} id={`${field.id}-${option}`} />
                           <Label htmlFor={`${field.id}-${option}`}>{option}</Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  )}
+                />
+              )}
+
+              {field.type === 'rating' && (
+                <Controller
+                  name={field.id}
+                  control={control}
+                  render={({ field: { onChange, value } }) => (
+                    <RadioGroup 
+                      onValueChange={onChange} 
+                      defaultValue={value ? String(value) : undefined}
+                      className="flex gap-2"
+                    >
+                      {[1, 2, 3, 4, 5].map((rating) => (
+                        <div key={rating} className="flex flex-col items-center">
+                          <RadioGroupItem 
+                            value={String(rating)} 
+                            id={`${field.id}-${rating}`} 
+                            className="peer sr-only"
+                          />
+                          <Label 
+                            htmlFor={`${field.id}-${rating}`}
+                            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border-2 border-muted bg-popover hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-black peer-data-[state=checked]:text-black font-semibold transition-all"
+                          >
+                            {rating}
+                          </Label>
                         </div>
                       ))}
                     </RadioGroup>

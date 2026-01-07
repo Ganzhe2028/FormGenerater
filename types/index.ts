@@ -1,4 +1,4 @@
-export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'select' | 'checkbox' | 'radio';
+export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'select' | 'checkbox' | 'radio' | 'rating';
 
 export interface FormField {
   id: string;
@@ -7,6 +7,10 @@ export interface FormField {
   placeholder?: string;
   required: boolean;
   options?: string[]; // Only for select, checkbox, radio
+  logic?: Array<{
+    condition: string; // The option value that triggers the jump
+    destination: string; // The target field ID to jump to
+  }>;
 }
 
 export interface FormSchema {

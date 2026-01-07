@@ -1,27 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { z } from 'zod';
-import { FormSchema } from '@/types';
-import { db } from '@/lib/db';
 import { cookies } from 'next/headers';
-
-// Define the schema for validation
-const FormSchemaZod = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string().optional(),
-  fields: z.array(
-    z.object({
-      id: z.string(),
-      label: z.string(),
-      type: z.enum(['text', 'textarea', 'number', 'email', 'select', 'checkbox', 'radio']),
-      placeholder: z.string().optional(),
-      required: z.boolean(),
-      options: z.array(z.string()).optional(),
-    })
-  ),
-  createdAt: z.number(),
-});
 
 export async function POST(req: Request) {
   try {
@@ -49,15 +28,12 @@ export async function POST(req: Request) {
       });
       model = modelCookie || 'llama3';
     } else {
-      // Default to OpenAI (or explicit 'openai')
       const apiKey = apiKeyCookie || process.env.OPENAI_API_KEY;
-      
       if (apiKey) {
         openai = new OpenAI({ apiKey });
         model = modelCookie || 'gpt-4o';
       } else {
-        // Fallback: No OpenAI key found anywhere, try default local Ollama
-        console.log("No OpenAI API Key found in cookies or env. Falling back to local Ollama.");
+        console.log("No OpenAI API Key found. Falling back to local Ollama.");
         openai = new OpenAI({
           baseURL: 'http://127.0.0.1:11434/v1',
           apiKey: 'ollama',
@@ -66,93 +42,88 @@ export async function POST(req: Request) {
       }
     }
     
-    console.log(`Generating form using ${provider || 'auto'} (${model})...`);
+    console.log(`Stream-Generating form using ${provider || 'auto'} (${model})...`);
 
     const systemPrompt = `You are a form generation assistant. Output ONLY valid JSON matching the following TypeScript schema:
-    
-    type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'select' | 'checkbox' | 'radio';
-    
-    interface FormField {
-      id: string; // unique camelCase identifier
-      label: string;
-      type: FieldType;
-      placeholder?: string;
-      required: boolean;
-      options?: string[]; // Only for select, checkbox, radio
-    }
-    
     interface FormSchema {
-      id: string; // use a UUID or random string
+      id: string; // Generate a unique UUID
       title: string;
       description?: string;
-      fields: FormField[];
-      createdAt: number; // current timestamp
+      fields: Array<{
+        id: string; // camelCase
+        label: string;
+        type: 'text' | 'textarea' | 'number' | 'email' | 'select' | 'checkbox' | 'radio' | 'rating';
+        placeholder?: string;
+        required: boolean;
+        options?: string[]; // For select/radio/checkbox
+        logic?: Array<{
+          condition: string; // The option value that triggers the jump
+          destination: string; // The target field ID to jump to
+        }>;
+      }>;
+      createdAt: number; // Current timestamp
     }
-    
-    Do not include markdown code blocks. Return just the JSON object.`;
+    Do not include markdown formatting (like \`\`\`json). Just the raw JSON string.`;
 
-    try {
-      const completion = await openai.chat.completions.create({
-        model: model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Create a form based on this user request: ${prompt}` },
-        ],
-        response_format: { type: "json_object" }, // Helps with JSON mode if supported
-      });
+    const completion = await openai.chat.completions.create({
+      model: model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ],
+      stream: true, // Enable streaming
+      temperature: 0.7, // Add temperature to control creativity/randomness
+      frequency_penalty: 0.1, // Slight penalty to prevent repetition
+    });
 
-      const content = completion.choices[0].message.content;
-      
-      if (!content) {
-        throw new Error("No content received from AI provider");
-      }
+    // Create a ReadableStream from the OpenAI async iterator
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of completion) {
+            const text = chunk.choices[0]?.delta?.content || '';
+            if (text) {
+              controller.enqueue(new TextEncoder().encode(text));
+            }
+          }
+          controller.close();
+        } catch (err) {
+          console.error("Stream error:", err);
+          controller.error(err);
+        } finally {
+          // Unload Ollama model to free VRAM
+          if (provider === 'ollama') {
+            try {
+              const currentBaseUrl = baseUrlCookie || 'http://127.0.0.1:11434/v1';
+              const nativeBaseUrl = currentBaseUrl.replace(/\/v1\/?$/, '');
+              
+              console.log(`Unloading Ollama model ${model} (keep_alive: 0)...`);
+              
+              // We use a fire-and-forget fetch here. 
+              // We don't await it strictly to avoid blocking the stream close if it hangs,
+              // but since this is 'finally', the stream is already closing/closed.
+              await fetch(`${nativeBaseUrl}/api/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: model, keep_alive: 0 })
+              });
+            } catch (unloadError) {
+              console.error("Failed to unload Ollama model:", unloadError);
+            }
+          }
+        }
+      },
+    });
 
-      // Clean up potential markdown formatting (in case json_object mode isn't fully supported by local model)
-      const cleanedContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
-      
-      const parsedData = JSON.parse(cleanedContent);
-      
-      // Validate with Zod
-      const validatedData = FormSchemaZod.parse(parsedData);
+    return new NextResponse(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+      },
+    });
 
-      db.saveForm(validatedData);
-
-      return NextResponse.json(validatedData);
-
-    } catch (aiError) {
-      console.error("AI Generation Error:", aiError);
-      // Fallback to mock data if AI fails (e.g. Ollama not running)
-      console.warn("Falling back to mock data due to AI error.");
-      const mockData: FormSchema = {
-        id: crypto.randomUUID(),
-        title: "Mock Registration Form (Fallback)",
-        description: "This form was generated because the AI provider was unavailable.",
-        createdAt: Date.now(),
-        fields: [
-          {
-            id: "name",
-            label: "Full Name",
-            type: "text",
-            placeholder: "John Doe",
-            required: true,
-          },
-          {
-            id: "email",
-            label: "Email Address",
-            type: "email",
-            placeholder: "john@example.com",
-            required: true,
-          },
-        ],
-      };
-      db.saveForm(mockData);
-      return NextResponse.json(mockData);
-    }
-  } catch (error) {
-    console.error("Critical error in generate route:", error);
-    return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
-    );
+  } catch (error: any) {
+    console.error("Generation error:", error);
+    return NextResponse.json({ error: error.message || 'Failed to generate form' }, { status: 500 });
   }
 }

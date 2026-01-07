@@ -148,19 +148,19 @@ export default function BuilderPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-4">
+      <header className="bg-white dark:bg-gray-800 border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10 relative">
+        <div className="flex items-center gap-4 max-w-[30%] z-20">
           <Link href="/">
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
           {isEditingTitle ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full">
               <Input
                 value={titleInput}
                 onChange={(e) => setTitleInput(e.target.value)}
-                className="h-8 w-[200px] sm:w-[300px]"
+                className="h-8 min-w-[150px] w-full"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') saveTitle();
@@ -170,10 +170,10 @@ export default function BuilderPage() {
                   }
                 }}
               />
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={saveTitle}>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600 shrink-0" onClick={saveTitle}>
                 <Check className="h-4 w-4" />
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600" onClick={() => {
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600 shrink-0" onClick={() => {
                 setIsEditingTitle(false);
                 setTitleInput(form.title);
               }}>
@@ -181,14 +181,14 @@ export default function BuilderPage() {
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 group">
-              <h1 className="text-xl font-semibold truncate max-w-[200px] sm:max-w-md cursor-pointer hover:underline decoration-dashed underline-offset-4" onClick={() => setIsEditingTitle(true)}>
+            <div className="flex items-center gap-2 group overflow-hidden">
+              <h1 className="text-xl font-semibold truncate cursor-pointer hover:underline decoration-dashed underline-offset-4" onClick={() => setIsEditingTitle(true)}>
                 {form.title}
               </h1>
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                 onClick={() => setIsEditingTitle(true)}
               >
                 <Pencil className="h-3 w-3 text-gray-500" />
@@ -198,7 +198,7 @@ export default function BuilderPage() {
         </div>
         
         {/* Tab Switcher */}
-        <div className="flex bg-gray-100 p-1 rounded-lg">
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex bg-gray-100 p-1 rounded-lg shadow-sm z-10">
           <button
             onClick={() => setActiveTab('builder')}
             className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
@@ -232,7 +232,7 @@ export default function BuilderPage() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 z-20">
            <Link href={`/view/${form.id}`} target="_blank">
             <Button variant="outline">
               <Eye className="mr-2 h-4 w-4" />
