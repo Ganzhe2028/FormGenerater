@@ -63,7 +63,7 @@ A modern **Text-to-Form** web application built with Next.js 16, Tailwind CSS, a
 -   **UI Components:** Shadcn/UI, Radix UI, Lucide React
 -   **Forms:** React Hook Form, Zod
 -   **Database:** Local JSON (MVP)
--   **Excel Export:** SheetJS (xlsx)
+-   **Excel Export:** ExcelJS
 
 ## 📂 Project Structure
 

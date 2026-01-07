@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Share2, Eye, BarChart3, FileEdit, Download } from 'lucide-react';
 import Link from 'next/link';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 export default function BuilderPage() {
   const params = useParams();
@@ -67,29 +68,48 @@ export default function BuilderPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const exportData = (type: 'csv' | 'xlsx') => {
+  const exportData = async (type: 'csv' | 'xlsx') => {
     if (!submissions.length) return;
 
-    // Prepare data for export
-    const dataToExport = submissions.map(sub => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Submissions');
+
+    // Define columns
+    const columns = [
+      { header: 'Submitted At', key: 'submittedAt', width: 25 },
+      ...form.fields.map((field: any) => ({
+        header: field.label,
+        key: field.id,
+        width: 20
+      }))
+    ];
+    worksheet.columns = columns;
+
+    // Add rows
+    submissions.forEach(sub => {
       const row: any = {
-        'Submitted At': new Date(sub.submittedAt).toLocaleString(),
+        submittedAt: new Date(sub.submittedAt).toLocaleString(),
       };
       form.fields.forEach((field: any) => {
         let value = sub.data[field.id];
         if (Array.isArray(value)) value = value.join(', ');
-        row[field.label] = value || '';
+        row[field.id] = value || '';
       });
-      return row;
+      worksheet.addRow(row);
     });
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Submissions');
 
     // Generate file and trigger download
     const fileName = `${form.title.replace(/\s+/g, '_')}_submissions_${new Date().toISOString().split('T')[0]}`;
-    XLSX.writeFile(workbook, `${fileName}.${type}`);
+
+    if (type === 'xlsx') {
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, `${fileName}.xlsx`);
+    } else {
+      const buffer = await workbook.csv.writeBuffer();
+      const blob = new Blob([buffer], { type: 'text/csv;charset=utf-8' });
+      saveAs(blob, `${fileName}.csv`);
+    }
   };
 
   return (

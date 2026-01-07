@@ -11,7 +11,7 @@ This project is a **Text-to-Form** web application built with **Next.js 16 (App 
 *   **Styling:** Tailwind CSS v4
 *   **UI Library:** Shadcn/UI (Radix UI based) + Lucide React (Icons)
 *   **Persistence:** JSON File DB (`data/db.json`) for forms and submissions.
-*   **Export:** `xlsx` for CSV/Excel export.
+*   **Export:** `exceljs` for CSV/Excel export.
 *   **State Management:** Zustand (Client-side), API (Server-side).
 *   **Form Handling:** React Hook Form + Zod.
 *   **AI Integration:** OpenAI SDK (Targeting strict JSON output).
