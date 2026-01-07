@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { FormSchema } from '@/types';
+import { db } from '@/lib/db';
 
 // Define the schema for validation
 const FormSchemaZod = z.object({
@@ -70,6 +71,7 @@ export async function POST(req: Request) {
           },
         ],
       };
+      db.saveForm(mockData);
       return NextResponse.json(mockData);
     }
 
@@ -119,6 +121,8 @@ export async function POST(req: Request) {
     
     // Validate with Zod
     const validatedData = FormSchemaZod.parse(parsedData);
+
+    db.saveForm(validatedData);
 
     return NextResponse.json(validatedData);
 

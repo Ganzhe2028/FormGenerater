@@ -20,8 +20,18 @@ export default function ViewPage() {
   useEffect(() => {
     setMounted(true);
     if (id) {
-      const foundForm = getForm(id);
-      setForm(foundForm);
+      // Fetch from API
+      fetch(`/api/forms/${id}`)
+        .then((res) => {
+          if (!res.ok) throw new Error('Form not found');
+          return res.json();
+        })
+        .then((data) => setForm(data))
+        .catch(() => {
+          // Fallback to local store (optional, mostly for dev/preview on same machine)
+          const foundForm = getForm(id);
+          if (foundForm) setForm(foundForm);
+        });
     }
   }, [id, getForm]);
 
@@ -44,13 +54,17 @@ export default function ViewPage() {
   }
 
   const handleSubmit = async (data: any) => {
-    // Log to console as per MVP
-    console.log('Form Submission:', { formId: form.id, data });
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setSubmitted(true);
+    try {
+      await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ formId: form.id, data }),
+      });
+      setSubmitted(true);
+    } catch (error) {
+      console.error('Submission failed', error);
+      alert('Failed to submit form. Please try again.');
+    }
   };
 
   if (submitted) {

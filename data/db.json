@@ -1,0 +1,99 @@
+{
+  "forms": [
+    {
+      "id": "d8641aca-81c7-40bb-a871-eca4cd52b1aa",
+      "title": "Mock Registration Form",
+      "description": "This is a mock form generated because no API key was provided.",
+      "createdAt": 1767756558018,
+      "fields": [
+        {
+          "id": "name",
+          "label": "Full Name",
+          "type": "text",
+          "placeholder": "John Doe",
+          "required": true
+        },
+        {
+          "id": "email",
+          "label": "Email Address",
+          "type": "email",
+          "placeholder": "john@example.com",
+          "required": true
+        },
+        {
+          "id": "experience",
+          "label": "Years of Experience",
+          "type": "select",
+          "required": true,
+          "options": [
+            "0-1 years",
+            "1-3 years",
+            "3-5 years",
+            "5+ years"
+          ]
+        },
+        {
+          "id": "bio",
+          "label": "Short Bio",
+          "type": "textarea",
+          "placeholder": "Tell us about yourself...",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "ae6967fe-7dc3-4c04-ab86-327167572f6c",
+      "title": "Mock Registration Form",
+      "description": "This is a mock form generated because no API key was provided.",
+      "createdAt": 1767756726514,
+      "fields": [
+        {
+          "id": "name",
+          "label": "Full Name",
+          "type": "text",
+          "placeholder": "John Doe",
+          "required": true
+        },
+        {
+          "id": "email",
+          "label": "Email Address",
+          "type": "email",
+          "placeholder": "john@example.com",
+          "required": true
+        },
+        {
+          "id": "experience",
+          "label": "Years of Experience",
+          "type": "select",
+          "required": true,
+          "options": [
+            "0-1 years",
+            "1-3 years",
+            "3-5 years",
+            "5+ years"
+          ]
+        },
+        {
+          "id": "bio",
+          "label": "Short Bio",
+          "type": "textarea",
+          "placeholder": "Tell us about yourself...",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "submissions": [
+    {
+      "id": "d6a60a4e-3bee-4467-9cb1-03564cc99d23",
+      "formId": "d8641aca-81c7-40bb-a871-eca4cd52b1aa",
+      "data": {
+        "name": "Isaac Bao",
+        "email": "IsaacBao@moonshotacademy.cn",
+        "experience": "5+ years",
+        "bio": ""
+      },
+      "submittedAt": "2026-01-07T03:29:56.967Z"
+    }
+  ]
+}
