@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
     db.addSubmission(submission);
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to save submission' }, { status: 500 });
   }
 }

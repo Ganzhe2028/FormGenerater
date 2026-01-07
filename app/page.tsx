@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useFormStore } from '@/store/formStore';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Sparkles, Settings, Terminal, Mail, Calendar } from 'lucide-react';
+import { Loader2, Sparkles, Settings, Terminal, Mail, Calendar, Square } from 'lucide-react';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 import { Sidebar } from '@/components/Sidebar';
@@ -17,6 +17,7 @@ export default function Home() {
   const [logs, setLogs] = useState<string[]>([]);
   const [streamContent, setStreamContent] = useState('');
   const logContainerRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const router = useRouter();
   const addForm = useFormStore((state) => state.addForm);
 
@@ -30,12 +31,23 @@ export default function Home() {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString().split(' ')[0]}] ${msg}`]);
   };
 
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      addLog("Generation terminated by user.");
+      setIsLoading(false);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
     setIsLoading(true);
     setLogs([]);
     setStreamContent('');
+    
+    abortControllerRef.current = new AbortController();
     
     const provider = Cookies.get('ai_provider') || 'openai';
     const model = Cookies.get('ai_model') || (provider === 'openai' ? 'gpt-4o' : 'llama3');
@@ -48,6 +60,7 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok || !response.body) throw new Error('Failed to connect');
@@ -71,7 +84,7 @@ export default function Home() {
       try {
         const cleanText = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
         formData = JSON.parse(cleanText);
-      } catch (e) {
+      } catch {
         throw new Error("Invalid JSON");
       }
 
@@ -88,10 +101,17 @@ export default function Home() {
         router.push(`/builder/${formData.id}`);
       }, 500);
 
-    } catch (error: any) {
-      addLog(`ERROR: ${error.message}`);
-      alert('Failed: ' + error.message);
-      setIsLoading(false);
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Fetch aborted');
+      } else {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        addLog(`ERROR: ${message}`);
+        alert('Failed: ' + message);
+        setIsLoading(false);
+      }
+    } finally {
+      abortControllerRef.current = null;
     }
   };
 
@@ -151,8 +171,19 @@ export default function Home() {
                     )}
                   </div>
                 </div>
-                <div className="flex flex-col items-center gap-4">
-                  <Loader2 className="h-8 w-8 text-zinc-700 animate-spin" />
+                <div className="flex flex-col items-center gap-6">
+                  <div className="flex items-center gap-4">
+                    <Loader2 className="h-8 w-8 text-zinc-700 animate-spin" />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleStop}
+                      className="bg-transparent border-zinc-800 text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900 transition-all rounded-full px-4 h-9"
+                    >
+                      <Square className="h-3 w-3 mr-2 fill-current" />
+                      Stop Generation
+                    </Button>
+                  </div>
                   <p className="text-xs font-mono text-zinc-600 animate-pulse uppercase tracking-widest">Synthesizing Schema...</p>
                 </div>
               </div>

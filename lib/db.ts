@@ -1,17 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { FormSchema } from '@/types';
+import { FormSchema, Submission } from '@/types';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const FORMS_DIR = path.join(DATA_DIR, 'forms');
 const SUBMISSIONS_DIR = path.join(DATA_DIR, 'submissions');
-
-interface Submission {
-  id: string;
-  formId: string;
-  data: any;
-  submittedAt: string;
-}
 
 // Ensure directories exist
 [DATA_DIR, FORMS_DIR, SUBMISSIONS_DIR].forEach(dir => {

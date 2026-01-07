@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
@@ -14,14 +14,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Save, Settings as SettingsIcon, ShieldCheck, RefreshCw, AlertCircle, Edit3, List } from 'lucide-react';
-import Link from 'next/link';
 import Cookies from 'js-cookie';
-import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { cn } from '@/lib/utils';
 
 export default function SettingsPage() {
-  const router = useRouter();
   const [provider, setProvider] = useState('openai');
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('http://127.0.0.1:11434/v1');
@@ -41,18 +38,19 @@ export default function SettingsPage() {
       const response = await fetch(`/api/ollama/models?baseUrl=${encodeURIComponent(url)}`);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to fetch models' }));
+        const errorData = (await response.json().catch(() => ({ error: 'Failed to fetch models' }))) as { error: string };
         throw new Error(errorData.error || 'Failed to fetch models');
       }
       
       const data = await response.json();
-      const modelNames = data.data.map((m: any) => m.id);
+      const modelNames = data.data.map((m: { id: string }) => m.id);
       setOllamaModels(modelNames);
       setFetchError(null);
       // If we got models, we can stay in select mode unless user forced manual
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching Ollama models:", err);
-      setFetchError(err.message || "Ollama connection failed. Switch to manual mode if needed.");
+      const message = err instanceof Error ? err.message : "Ollama connection failed. Switch to manual mode if needed.";
+      setFetchError(message);
       setOllamaModels([]);
       setIsManualMode(true); // Auto fallback to manual if connection fails
     } finally {
@@ -258,7 +256,7 @@ export default function SettingsPage() {
               <div className="space-y-1">
                 <h3 className="text-sm font-bold text-zinc-300">Data Privacy Note</h3>
                 <p className="text-xs text-zinc-600 leading-relaxed">
-                  All configuration parameters, including API keys, are stored exclusively within your browser's local storage (cookies). No sensitive data is ever transmitted to our servers.
+                  All configuration parameters, including API keys, are stored exclusively within your browser&apos;s local storage (cookies). No sensitive data is ever transmitted to our servers.
                 </p>
               </div>
             </div>

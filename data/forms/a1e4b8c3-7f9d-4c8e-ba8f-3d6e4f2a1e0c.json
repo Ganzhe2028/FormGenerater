@@ -1,0 +1,134 @@
+{
+  "id": "a1e4b8c3-7f9d-4c8e-ba8f-3d6e4f2a1e0c",
+  "title": "高中生社团/工作室招新报名表",
+  "description": "专业简洁的招新报名表，包含技术、设计、运营等核心模块",
+  "fields": [
+    {
+      "id": "name",
+      "label": "姓名",
+      "type": "text",
+      "placeholder": "请输入您的姓名",
+      "required": true
+    },
+    {
+      "id": "grade",
+      "label": "年级",
+      "type": "select",
+      "options": [
+        "G9",
+        "G10",
+        "G11",
+        "G12"
+      ],
+      "required": true
+    },
+    {
+      "id": "dept",
+      "label": "请选择部门",
+      "type": "select",
+      "options": [
+        "A. 技术开发部 (Dev)",
+        "B. 设计与创意部 (Design)",
+        "C. 运营与策划部 (Ops)"
+      ],
+      "logic": [
+        {
+          "condition": "A",
+          "destination": "tech_skills"
+        },
+        {
+          "condition": "B",
+          "destination": "design_tools"
+        },
+        {
+          "condition": "C",
+          "destination": "ops_plan"
+        }
+      ]
+    },
+    {
+      "id": "tech_skills",
+      "label": "你熟悉的编程语言或技术栈？",
+      "type": "select",
+      "options": [
+        "Python",
+        "Java",
+        "JavaScript/TypeScript",
+        "React/Vue",
+        "Unity/C#",
+        "Swift",
+        "其他"
+      ],
+      "required": true
+    },
+    {
+      "id": "github",
+      "label": "请留下你的 GitHub 主页或过往项目链接",
+      "type": "textarea",
+      "placeholder": "如果没有，请填写“无”",
+      "required": true
+    },
+    {
+      "id": "design_tools",
+      "label": "你常用的设计工具？",
+      "type": "select",
+      "options": [
+        "Figma",
+        "Photoshop",
+        "Illustrator",
+        "Procreate",
+        "Blender",
+        "剪映/Pr"
+      ],
+      "required": true
+    },
+    {
+      "id": "portfolio",
+      "label": "请上传你的作品集或展示链接",
+      "type": "file",
+      "required": true
+    },
+    {
+      "id": "ops_plan",
+      "label": "如果你为社团策划一场活动，你有什么初步的想法？",
+      "type": "longtext",
+      "required": true
+    },
+    {
+      "id": "experience",
+      "label": "你是否有过公众号排版或文案写作经验？",
+      "type": "select",
+      "options": [
+        "有（请在面试时展示）",
+        "没有但愿意学",
+        "完全没有"
+      ],
+      "required": true
+    },
+    {
+      "id": "goals",
+      "label": "你希望在社团里获得什么？",
+      "type": "select",
+      "options": [
+        "项目实战经验",
+        "结识大佬",
+        "单纯觉得好玩",
+        "丰富简历"
+      ],
+      "required": true
+    },
+    {
+      "id": "interview",
+      "label": "下周如果你通过初筛，方便面试的时间段是？",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "message",
+      "label": "还有什么想对我们说的吗？",
+      "type": "longtext",
+      "required": false
+    }
+  ],
+  "createdAt": 1718296234
+}

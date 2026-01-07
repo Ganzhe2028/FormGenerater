@@ -20,3 +20,10 @@ export interface FormSchema {
   fields: FormField[];
   createdAt: number;
 }
+
+export interface Submission {
+  id: string;
+  formId: string;
+  data: Record<string, unknown>;
+  submittedAt: string;
+}

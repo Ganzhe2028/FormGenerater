@@ -18,19 +18,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 
 interface FormRendererProps {
   schema: FormSchema;
-  onSubmit?: (data: any) => void;
+  onSubmit?: (data: Record<string, unknown>) => void;
   isPreview?: boolean;
 }
 
 export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRendererProps) {
   const generateZodSchema = (fields: FormField[]) => {
-    const shape: any = {};
+    const shape: Record<string, z.ZodTypeAny> = {};
     fields.forEach((field) => {
-      let validator: any;
+      let validator: z.ZodTypeAny;
 
       switch (field.type) {
         case 'email':
@@ -50,7 +49,8 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
       }
 
       if (field.required && field.type !== 'checkbox') {
-        validator = validator.min(1, { message: `${field.label} is required` });
+        const stringValidator = validator as z.ZodString;
+        validator = stringValidator.min(1, { message: `${field.label} is required` });
       } else if (!field.required) {
         validator = validator.optional();
       }
@@ -61,7 +61,7 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
   };
 
   const formSchema = generateZodSchema(schema.fields);
-  type FormData = z.infer<typeof formSchema>;
+  type FormData = Record<string, unknown>; // z.infer<typeof formSchema> can be complex with dynamic keys
 
   const {
     register,
@@ -111,7 +111,7 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
   const handleFormSubmit = (data: FormData) => {
     const visibleIds = new Set(visibleFields.map(f => f.id));
     const filteredData = Object.fromEntries(
-      Object.entries(data as Record<string, any>).filter(([key]) => visibleIds.has(key))
+      Object.entries(data).filter(([key]) => visibleIds.has(key))
     );
     
     if (onSubmit) {

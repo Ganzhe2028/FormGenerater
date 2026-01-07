@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const forms = db.getForms();
     return NextResponse.json(forms);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch forms' }, { status: 500 });
   }
 }
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     
     db.saveForm(form);
     return NextResponse.json({ success: true, form });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to save form' }, { status: 500 });
   }
 }

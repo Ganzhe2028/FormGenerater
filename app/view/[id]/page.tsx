@@ -4,21 +4,22 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useFormStore } from '@/store/formStore';
 import { FormRenderer } from '@/components/form/FormRenderer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardTitle } from '@/components/ui/card';
 import { CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { FormSchema } from '@/types';
 
 export default function ViewPage() {
   const params = useParams();
   const id = params?.id as string;
   const getForm = useFormStore((state) => state.getForm);
-  const [form, setForm] = useState<any>(null);
+  const [form, setForm] = useState<FormSchema | null>(null);
   const [mounted, setMounted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
     if (id) {
       fetch(`/api/forms/${id}`)
         .then((res) => {
@@ -31,6 +32,7 @@ export default function ViewPage() {
           if (foundForm) setForm(foundForm);
         });
     }
+    return () => clearTimeout(timer);
   }, [id, getForm]);
 
   if (!mounted) return null;
@@ -54,7 +56,7 @@ export default function ViewPage() {
     );
   }
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: Record<string, unknown>) => {
     try {
       await fetch('/api/submit', {
         method: 'POST',

@@ -91,29 +91,34 @@ export async function POST(req: Request) {
           console.error("Stream error:", err);
           controller.error(err);
         } finally {
-          // Unload Ollama model to free VRAM
-          if (provider === 'ollama') {
-            try {
-              const currentBaseUrl = baseUrlCookie || 'http://127.0.0.1:11434/v1';
-              const nativeBaseUrl = currentBaseUrl.replace(/\/v1\/?$/, '');
-              
-              console.log(`Unloading Ollama model ${model} (keep_alive: 0)...`);
-              
-              // We use a fire-and-forget fetch here. 
-              // We don't await it strictly to avoid blocking the stream close if it hangs,
-              // but since this is 'finally', the stream is already closing/closed.
-              await fetch(`${nativeBaseUrl}/api/chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: model, keep_alive: 0 })
-              });
-            } catch (unloadError) {
-              console.error("Failed to unload Ollama model:", unloadError);
-            }
-          }
+          // Standard cleanup (handled by finally or cancel)
+          await unloadModel();
         }
       },
+      async cancel() {
+        console.log("Stream cancelled by client.");
+        await unloadModel();
+      }
     });
+
+    async function unloadModel() {
+      if (provider === 'ollama') {
+        try {
+          const currentBaseUrl = baseUrlCookie || 'http://127.0.0.1:11434/v1';
+          const nativeBaseUrl = currentBaseUrl.replace(/\/v1\/?$/, '');
+          
+          console.log(`Unloading Ollama model ${model} (keep_alive: 0)...`);
+          
+          await fetch(`${nativeBaseUrl}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: model, keep_alive: 0 })
+          });
+        } catch (unloadError) {
+          console.error("Failed to unload Ollama model:", unloadError);
+        }
+      }
+    }
 
     return new NextResponse(stream, {
       headers: {
@@ -122,8 +127,9 @@ export async function POST(req: Request) {
       },
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Generation error:", error);
-    return NextResponse.json({ error: error.message || 'Failed to generate form' }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Failed to generate form';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -7,19 +7,20 @@ import { FormRenderer } from '@/components/form/FormRenderer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Share2, Eye, BarChart3, FileEdit, Download, Pencil, Check, X } from 'lucide-react';
+import { Share2, Eye, BarChart3, FileEdit, Download, Pencil, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { cn } from '@/lib/utils';
 import { Sidebar } from '@/components/Sidebar';
+import { FormSchema, Submission, FormField } from '@/types';
 
 export default function BuilderPage() {
   const params = useParams();
   const id = params?.id as string;
   const getForm = useFormStore((state) => state.getForm);
-  const [form, setForm] = useState<any>(null);
-  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [form, setForm] = useState<FormSchema | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'builder' | 'submissions'>('builder');
@@ -27,28 +28,33 @@ export default function BuilderPage() {
   const [titleInput, setTitleInput] = useState('');
 
   useEffect(() => {
-    setMounted(true);
-    if (id) {
-      const foundForm = getForm(id);
-      if (foundForm) {
-        setForm(foundForm);
-        setTitleInput(foundForm.title);
-      } else {
-        fetch(`/api/forms/${id}`)
-          .then(res => res.ok ? res.json() : null)
-          .then(data => {
-            if (data) {
-              setForm(data);
-              setTitleInput(data.title);
-            }
-          });
+    // Avoid synchronous state update during render
+    const timer = setTimeout(() => {
+      setMounted(true);
+      if (id) {
+        const foundForm = getForm(id);
+        if (foundForm) {
+          setForm(foundForm);
+          setTitleInput(foundForm.title);
+        } else {
+          fetch(`/api/forms/${id}`)
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+              if (data) {
+                setForm(data);
+                setTitleInput(data.title);
+              }
+            });
+        }
+        
+        fetch(`/api/forms/${id}/submissions`)
+          .then(res => res.json())
+          .then(data => setSubmissions(data))
+          .catch(console.error);
       }
-      
-      fetch(`/api/forms/${id}/submissions`)
-        .then(res => res.json())
-        .then(data => setSubmissions(data))
-        .catch(console.error);
-    }
+    }, 0);
+    
+    return () => clearTimeout(timer);
   }, [id, getForm]);
 
   const saveTitle = async () => {
@@ -107,15 +113,15 @@ export default function BuilderPage() {
     const worksheet = workbook.addWorksheet('Submissions');
     const columns = [
       { header: 'Submitted At', key: 'submittedAt', width: 25 },
-      ...form.fields.map((field: any) => ({ header: field.label, key: field.id, width: 20 }))
+      ...form.fields.map((field: FormField) => ({ header: field.label, key: field.id, width: 20 }))
     ];
     worksheet.columns = columns;
     submissions.forEach(sub => {
-      const row: any = { submittedAt: new Date(sub.submittedAt).toLocaleString() };
-      form.fields.forEach((field: any) => {
+      const row: Record<string, string | number> = { submittedAt: new Date(sub.submittedAt).toLocaleString() };
+      form.fields.forEach((field: FormField) => {
         let value = sub.data[field.id];
         if (Array.isArray(value)) value = value.join(', ');
-        row[field.id] = value || '';
+        row[field.id] = (value as string | number) || '';
       });
       worksheet.addRow(row);
     });
@@ -290,7 +296,7 @@ export default function BuilderPage() {
                           <thead className="bg-zinc-900/30 text-zinc-600 font-bold uppercase tracking-[0.2em] text-[9px] border-b border-zinc-900/50">
                             <tr>
                               <th className="px-8 py-5">Time</th>
-                              {form.fields.slice(0, 3).map((field: any) => (
+                              {form.fields.slice(0, 3).map((field: FormField) => (
                                 <th key={field.id} className="px-8 py-5 truncate max-w-[150px]">
                                   {field.label}
                                 </th>
@@ -304,7 +310,7 @@ export default function BuilderPage() {
                                 <td className="px-8 py-6 text-zinc-500 whitespace-nowrap">
                                   {new Date(sub.submittedAt).toLocaleDateString()}
                                 </td>
-                                {form.fields.slice(0, 3).map((field: any) => (
+                                {form.fields.slice(0, 3).map((field: FormField) => (
                                   <td key={field.id} className="px-8 py-6 truncate max-w-[200px] text-zinc-300">
                                     {typeof sub.data[field.id] === 'object' 
                                       ? JSON.stringify(sub.data[field.id]) 

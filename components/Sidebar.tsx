@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Settings, Trash2, MessageSquare, Plus } from 'lucide-react';
@@ -18,11 +18,7 @@ export function Sidebar({ className }: SidebarProps) {
   const params = useParams();
   const activeId = params?.id as string;
 
-  useEffect(() => {
-    fetchHistory();
-  }, []);
-
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       const res = await fetch('/api/forms');
       if (res.ok) {
@@ -32,7 +28,14 @@ export function Sidebar({ className }: SidebarProps) {
     } catch (error) {
       console.error('Failed to fetch history:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchHistory();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchHistory]);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.preventDefault();
