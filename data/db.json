@@ -81,6 +81,47 @@
           "required": false
         }
       ]
+    },
+    {
+      "id": "790d0734-9ef6-40e8-927a-7f33875e82a2",
+      "title": "Mock Registration Form",
+      "description": "This is a mock form generated because no API key was provided.",
+      "createdAt": 1767761412775,
+      "fields": [
+        {
+          "id": "name",
+          "label": "Full Name",
+          "type": "text",
+          "placeholder": "John Doe",
+          "required": true
+        },
+        {
+          "id": "email",
+          "label": "Email Address",
+          "type": "email",
+          "placeholder": "john@example.com",
+          "required": true
+        },
+        {
+          "id": "experience",
+          "label": "Years of Experience",
+          "type": "select",
+          "required": true,
+          "options": [
+            "0-1 years",
+            "1-3 years",
+            "3-5 years",
+            "5+ years"
+          ]
+        },
+        {
+          "id": "bio",
+          "label": "Short Bio",
+          "type": "textarea",
+          "placeholder": "Tell us about yourself...",
+          "required": false
+        }
+      ]
     }
   ],
   "submissions": [
@@ -94,6 +135,17 @@
         "bio": ""
       },
       "submittedAt": "2026-01-07T03:29:56.967Z"
+    },
+    {
+      "id": "9629727a-4dde-4844-8358-025139ee493b",
+      "formId": "790d0734-9ef6-40e8-927a-7f33875e82a2",
+      "data": {
+        "name": "Isaac Bao",
+        "email": "IsaacBao@moonshotacademy.cn",
+        "experience": "1-3 years",
+        "bio": ""
+      },
+      "submittedAt": "2026-01-07T04:50:22.857Z"
     }
   ]
 }
