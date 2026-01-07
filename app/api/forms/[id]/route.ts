@@ -39,3 +39,16 @@ export async function PATCH(
     return NextResponse.json({ error: 'Failed to update form' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    db.deleteForm(id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete form' }, { status: 500 });
+  }
+}

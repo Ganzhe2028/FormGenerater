@@ -88,7 +88,8 @@ export function FormRenderer({ schema, onSubmit, isPreview = false }: FormRender
 
       if (field.logic && val) {
         for (const rule of field.logic) {
-          if (String(val) === rule.condition) {
+          const isMatch = rule.condition === '*' || rule.condition === '' || String(val) === rule.condition;
+          if (isMatch) {
             const targetIndex = schema.fields.findIndex(f => f.id === rule.destination);
             if (targetIndex !== -1 && targetIndex > i) {
               i = targetIndex;

@@ -6,7 +6,8 @@ import { useFormStore } from '@/store/formStore';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Sparkles, Settings, Terminal, ChevronRight } from 'lucide-react';
+import { Loader2, Sparkles, Settings, Terminal, ChevronRight, History, Trash2, ExternalLink } from 'lucide-react';
+import { FormSchema } from '@/types';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 
@@ -15,11 +16,44 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [streamContent, setStreamContent] = useState('');
+  const [history, setHistory] = useState<FormSchema[]>([]);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const addForm = useFormStore((state) => state.addForm);
 
-  // Auto-scroll logs
+  // Fetch history on mount
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch('/api/forms');
+      if (res.ok) {
+        const data = await res.json();
+        // Newest on top is already handled by db.ts but we ensure it here
+        setHistory(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm('Delete this form history?')) return;
+
+    try {
+      const res = await fetch(`/api/forms/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setHistory(prev => prev.filter(f => f.id !== id));
+      }
+    } catch (error) {
+      console.error('Failed to delete form:', error);
+    }
+  };
+
   useEffect(() => {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
@@ -37,14 +71,11 @@ export default function Home() {
     setLogs([]);
     setStreamContent('');
     
-    // Read Settings for logs
     const provider = Cookies.get('ai_provider') || 'openai';
     const model = Cookies.get('ai_model') || (provider === 'openai' ? 'gpt-4o' : 'llama3');
     
-    addLog(`System initialized.`);
-    addLog(`Configuration: ${provider.toUpperCase()} / ${model}`);
-    addLog(`Prompt: "${prompt.slice(0, 30)}${prompt.length > 30 ? '...' : ''}"`);
-    addLog(`Connecting to API...`);
+    addLog(`Initializing ${model}...`);
+    addLog(`Connecting...`);
 
     try {
       const response = await fetch('/api/generate', {
@@ -53,159 +84,237 @@ export default function Home() {
         body: JSON.stringify({ prompt }),
       });
 
-      if (!response.ok || !response.body) {
-        throw new Error('Failed to connect to generation API');
-      }
+      if (!response.ok || !response.body) throw new Error('Failed to connect');
 
-      addLog(`Connection established. Receiving data stream...`);
-      
+      addLog(`Stream started.`);
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullText = '';
-      let loopCount = 0;
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        
         const chunk = decoder.decode(value, { stream: true });
         fullText += chunk;
         setStreamContent(prev => prev + chunk);
-        
-        // Occasionally log a status update to keep it alive
-        loopCount++;
-        if (loopCount % 20 === 0) {
-           // addLog(`Received ${fullText.length} bytes...`);
-        }
       }
 
-      addLog(`Stream finished. Total ${fullText.length} bytes.`);
-      addLog(`Parsing JSON schema...`);
+      addLog(`Success. Parsing...`);
 
       let formData;
       try {
-        // Handle potential markdown wrapping (e.g. ```json ... ```)
         const cleanText = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
         formData = JSON.parse(cleanText);
       } catch (e) {
-        addLog(`ERROR: JSON Parse failed.`);
-        console.error("JSON Parse Error:", e);
-        throw new Error("Invalid JSON received from AI");
+        throw new Error("Invalid JSON");
       }
 
-      addLog(`Validating structure... OK.`);
-      addLog(`Saving form to database...`);
-
-      // Save the form
       const saveResponse = await fetch('/api/forms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
-      if (!saveResponse.ok) throw new Error('Failed to save form');
+      if (!saveResponse.ok) throw new Error('Save failed');
 
-      addLog(`Form saved (ID: ${formData.id}). Redirecting...`);
-
-      // Update local store and redirect
       addForm(formData);
+      fetchHistory();
       setTimeout(() => {
         router.push(`/builder/${formData.id}`);
-      }, 800);
+      }, 500);
 
     } catch (error: any) {
-      console.error(error);
-      addLog(`CRITICAL ERROR: ${error.message}`);
-      addLog(`Terminating process.`);
-      // Keep loading state true for a moment so user can read error? 
-      // Or provide a reset button.
-      // For now, we'll alert and reset after 3s
-      alert('Generation failed. See logs.');
-      setTimeout(() => setIsLoading(false), 3000);
+      addLog(`ERROR: ${error.message}`);
+      alert('Failed: ' + error.message);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-900 relative">
-      <div className="absolute top-6 right-6">
-        <Link href="/settings">
-          <Button variant="ghost" className="h-16 w-16 rounded-full">
-            <Settings className="h-10 w-10 text-gray-500 hover:text-gray-900" />
-          </Button>
-        </Link>
-      </div>
-      <div className="max-w-xl w-full space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-            AI Form Generator
-          </h1>
-          <p className="text-muted-foreground">
-            Describe your form in plain English, and we'll build it for you in seconds.
-          </p>
+    <div className="h-screen flex bg-white dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 overflow-hidden font-sans">
+      {/* Sidebar - Grok Style */}
+      <aside className="w-72 border-r border-zinc-200 dark:border-zinc-800 flex flex-col hidden md:flex">
+        <div className="p-5 flex items-center gap-3">
+          <div className="h-8 w-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+            <Sparkles className="h-5 w-5 text-white dark:text-black" />
+          </div>
+          <h2 className="font-bold text-xl tracking-tight">Monk Form</h2>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1 custom-scrollbar">
+          <div className="px-3 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">History</div>
+          {history.length === 0 ? (
+            <div className="px-3 py-4 text-sm text-zinc-400 italic">No history yet</div>
+          ) : (
+            history.map((form) => (
+              <div 
+                key={form.id} 
+                className="group relative flex items-center justify-between p-3 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all cursor-pointer border border-transparent"
+                onClick={() => router.push(`/builder/${form.id}`)}
+              >
+                <div className="flex flex-col overflow-hidden pr-6">
+                  <span className="text-sm font-medium truncate">{form.title}</span>
+                  <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+                    <span>{new Date(form.createdAt).toLocaleDateString()}</span>
+                    <span className="opacity-50">•</span>
+                    <span>{new Date(form.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                  onClick={(e) => handleDelete(e, form.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))
+          )}
         </div>
 
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle>What kind of form do you need?</CardTitle>
-            <CardDescription>
-              E.g., "A registration form for a hackathon with name, email, dietary restrictions, and team name."
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isLoading ? (
-              <div className="bg-black rounded-md p-4 h-[320px] overflow-y-auto font-mono text-xs shadow-inner border border-green-900 flex flex-col gap-4" ref={logContainerRef}>
-                {/* System Logs */}
-                <div className="text-green-400 space-y-1 shrink-0">
-                  <div className="flex items-center gap-2 border-b border-green-900 pb-2 mb-2 text-green-600 opacity-70">
-                     <Terminal className="h-3 w-3" />
-                     <span className="uppercase tracking-wider">System Events</span>
-                  </div>
-                  {logs.map((log, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <ChevronRight className="h-3 w-3 mt-[2px] shrink-0 opacity-50" />
-                      <span>{log}</span>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Raw Stream Content */}
-                {streamContent && (
-                  <div className="pt-2 border-t border-green-900/50 text-gray-400 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="mb-2 text-[10px] uppercase tracking-wider text-green-600 opacity-70">Raw Output Stream</div>
-                    <pre className="whitespace-pre-wrap break-all font-mono text-[10px] leading-3 opacity-80 text-gray-300">
-                      {streamContent}
-                      <span className="animate-pulse inline-block w-1.5 h-3 bg-green-500 ml-0.5 align-middle"></span>
-                    </pre>
-                  </div>
-                )}
+        <div className="p-4 mt-auto">
+          <Button variant="secondary" className="w-full justify-start gap-2 rounded-xl" onClick={() => setPrompt('')}>
+            <Sparkles className="h-4 w-4" />
+            New Form
+          </Button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col relative overflow-hidden bg-zinc-50/50 dark:bg-black/20">
+        {/* Top Header / Settings */}
+        <header className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-20">
+          <div className="md:hidden flex items-center gap-2">
+             <h2 className="font-bold text-xl tracking-tight">Monk Form</h2>
+          </div>
+          <div className="ml-auto">
+            <Link href="/settings">
+              <Button variant="ghost" className="h-12 w-12 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all">
+                <Settings className="h-7 w-7 text-zinc-600 dark:text-zinc-400" />
+              </Button>
+            </Link>
+          </div>
+        </header>
+
+        {/* Center Prompt Area */}
+        <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-3xl mx-auto w-full">
+          <div className="w-full space-y-8 animate-in fade-in zoom-in-95 duration-500">
+            {!isLoading && (
+              <div className="text-center space-y-3 mb-4">
+                <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-zinc-900 dark:text-white">
+                  What should we build?
+                </h1>
+                <p className="text-lg text-zinc-500 dark:text-zinc-400 font-medium">
+                  Explain your form ideas in natural language.
+                </p>
               </div>
-            ) : (
-              <>
-                <Textarea
-                  placeholder="Describe your form..."
-                  className="min-h-[120px] resize-none text-lg"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleGenerate();
-                    }
-                  }}
-                />
-                <Button
-                  className="w-full text-lg h-12"
-                  onClick={handleGenerate}
-                  disabled={isLoading || !prompt.trim()}
-                >
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Generate Form
-                </Button>
-              </>
             )}
-          </CardContent>
-        </Card>
-      </div>
+
+            {isLoading && (
+              <div className="w-full space-y-6">
+                <div className="bg-zinc-900 dark:bg-zinc-900/50 rounded-2xl p-6 h-[400px] overflow-hidden flex flex-col border border-zinc-800 shadow-2xl relative">
+                  <div className="flex items-center gap-2 text-zinc-500 text-[10px] uppercase tracking-[0.2em] font-bold mb-4 border-b border-zinc-800 pb-3">
+                    <Terminal className="h-3 w-3" />
+                    Neural Generation Engine
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto font-mono text-sm custom-scrollbar" ref={logContainerRef}>
+                    {logs.map((log, i) => (
+                      <div key={i} className="flex gap-3 text-zinc-400 mb-1 animate-in fade-in duration-300">
+                        <span className="text-zinc-600 shrink-0">›</span>
+                        <span className="leading-relaxed">{log}</span>
+                      </div>
+                    ))}
+                    {streamContent && (
+                      <div className="mt-6 pt-4 border-t border-zinc-800/50">
+                        <div className="text-[10px] text-zinc-600 font-bold mb-3 uppercase tracking-widest">Stream Output</div>
+                        <div className="text-zinc-500 text-xs leading-4 break-all opacity-80 italic">
+                          {streamContent}
+                          <span className="inline-block w-1.5 h-4 bg-zinc-400 animate-pulse ml-1 align-middle" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-zinc-900 to-transparent pointer-events-none" />
+                </div>
+                <div className="flex justify-center">
+                  <Loader2 className="h-8 w-8 text-zinc-500 animate-spin" />
+                </div>
+              </div>
+            )}
+
+            {!isLoading && (
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-zinc-200 to-zinc-300 dark:from-zinc-800 dark:to-zinc-700 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                <div className="relative bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden">
+                  <Textarea
+                    placeholder="E.g. A customer feedback form for a high-end restaurant..."
+                    className="w-full min-h-[160px] p-6 text-xl bg-transparent border-none focus-visible:ring-0 resize-none placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleGenerate();
+                      }
+                    }}
+                  />
+                  <div className="p-4 bg-zinc-50 dark:bg-zinc-900/50 border-t border-zinc-100 dark:border-zinc-800 flex justify-end items-center gap-3">
+                    <span className="text-xs text-zinc-400 font-medium mr-auto pl-2">
+                      Press <kbd className="px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-[10px]">Enter</kbd> to generate
+                    </span>
+                    <Button 
+                      className="rounded-xl px-6 h-11 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black hover:scale-105 transition-transform font-bold"
+                      onClick={handleGenerate}
+                      disabled={!prompt.trim()}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!isLoading && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+                <button 
+                  onClick={() => setPrompt("A simple contact form for my portfolio website.")}
+                  className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 bg-white dark:bg-zinc-900/50 text-left transition-all"
+                >
+                  <p className="text-sm font-semibold mb-1 text-zinc-900 dark:text-zinc-100">Contact Form</p>
+                  <p className="text-xs text-zinc-500">Basic name, email, and message.</p>
+                </button>
+                <button 
+                  onClick={() => setPrompt("An event RSVP form with dietary choices and number of guests.")}
+                  className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 bg-white dark:bg-zinc-900/50 text-left transition-all"
+                >
+                  <p className="text-sm font-semibold mb-1 text-zinc-900 dark:text-zinc-100">Event RSVP</p>
+                  <p className="text-xs text-zinc-500">Collect guest details and preferences.</p>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #3f3f46;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #52525b;
+        }
+      `}</style>
     </div>
   );
 }

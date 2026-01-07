@@ -2,8 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { FormSchema } from '@/types';
 
-const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
 const DATA_DIR = path.join(process.cwd(), 'data');
+const FORMS_DIR = path.join(DATA_DIR, 'forms');
+const SUBMISSIONS_DIR = path.join(DATA_DIR, 'submissions');
 
 interface Submission {
   id: string;
@@ -12,52 +13,71 @@ interface Submission {
   submittedAt: string;
 }
 
-interface Database {
-  forms: FormSchema[];
-  submissions: Submission[];
-}
-
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-// Ensure db file exists
-if (!fs.existsSync(DB_PATH)) {
-  fs.writeFileSync(DB_PATH, JSON.stringify({ forms: [], submissions: [] }, null, 2));
-}
-
-function readDb(): Database {
-  try {
-    const data = fs.readFileSync(DB_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    return { forms: [], submissions: [] };
+// Ensure directories exist
+[DATA_DIR, FORMS_DIR, SUBMISSIONS_DIR].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
-}
-
-function writeDb(data: Database) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
-}
+});
 
 export const db = {
-  getForms: () => readDb().forms,
-  getForm: (id: string) => readDb().forms.find((f) => f.id === id),
-  saveForm: (form: FormSchema) => {
-    const data = readDb();
-    // Check if form exists
-    const existingIndex = data.forms.findIndex(f => f.id === form.id);
-    if (existingIndex >= 0) {
-      data.forms[existingIndex] = form;
-    } else {
-      data.forms.push(form);
+  getForms: (): FormSchema[] => {
+    try {
+      const files = fs.readdirSync(FORMS_DIR);
+      return files
+        .filter(f => f.endsWith('.json'))
+        .map(f => {
+          const content = fs.readFileSync(path.join(FORMS_DIR, f), 'utf-8');
+          return JSON.parse(content) as FormSchema;
+        })
+        .sort((a, b) => b.createdAt - a.createdAt);
+    } catch (error) {
+      console.error('Error reading forms:', error);
+      return [];
     }
-    writeDb(data);
   },
-  getSubmissions: (formId: string) => readDb().submissions.filter((s) => s.formId === formId),
+
+  getForm: (id: string): FormSchema | undefined => {
+    const filePath = path.join(FORMS_DIR, `${id}.json`);
+    if (!fs.existsSync(filePath)) return undefined;
+    try {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    } catch {
+      return undefined;
+    }
+  },
+
+  saveForm: (form: FormSchema) => {
+    const filePath = path.join(FORMS_DIR, `${form.id}.json`);
+    fs.writeFileSync(filePath, JSON.stringify(form, null, 2));
+  },
+
+  deleteForm: (id: string) => {
+    const formPath = path.join(FORMS_DIR, `${id}.json`);
+    const submissionsPath = path.join(SUBMISSIONS_DIR, `${id}.json`);
+    if (fs.existsSync(formPath)) fs.unlinkSync(formPath);
+    if (fs.existsSync(submissionsPath)) fs.unlinkSync(submissionsPath);
+  },
+
+  getSubmissions: (formId: string): Submission[] => {
+    const filePath = path.join(SUBMISSIONS_DIR, `${formId}.json`);
+    if (!fs.existsSync(filePath)) return [];
+    try {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    } catch {
+      return [];
+    }
+  },
+
   addSubmission: (submission: Submission) => {
-    const data = readDb();
-    data.submissions.push(submission);
-    writeDb(data);
+    const filePath = path.join(SUBMISSIONS_DIR, `${submission.formId}.json`);
+    let submissions: Submission[] = [];
+    if (fs.existsSync(filePath)) {
+      try {
+        submissions = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      } catch {}
+    }
+    submissions.push(submission);
+    fs.writeFileSync(filePath, JSON.stringify(submissions, null, 2));
   },
 };
