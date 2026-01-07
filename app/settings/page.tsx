@@ -1,16 +1,24 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Save, Settings as SettingsIcon, ShieldCheck } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Save, Settings as SettingsIcon, ShieldCheck, RefreshCw, AlertCircle, Edit3, List } from 'lucide-react';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
+import { cn } from '@/lib/utils';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -19,6 +27,38 @@ export default function SettingsPage() {
   const [baseUrl, setBaseUrl] = useState('http://127.0.0.1:11434/v1');
   const [model, setModel] = useState('gpt-4o');
   const [saved, setSaved] = useState(false);
+  
+  const [ollamaModels, setOllamaModels] = useState<string[]>([]);
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isManualMode, setIsManualMode] = useState(false);
+
+  const fetchOllamaModels = useCallback(async (url: string) => {
+    setIsFetchingModels(true);
+    setFetchError(null);
+    try {
+      // Use server-side proxy to avoid CORS issues with local Ollama
+      const response = await fetch(`/api/ollama/models?baseUrl=${encodeURIComponent(url)}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to fetch models' }));
+        throw new Error(errorData.error || 'Failed to fetch models');
+      }
+      
+      const data = await response.json();
+      const modelNames = data.data.map((m: any) => m.id);
+      setOllamaModels(modelNames);
+      setFetchError(null);
+      // If we got models, we can stay in select mode unless user forced manual
+    } catch (err: any) {
+      console.error("Error fetching Ollama models:", err);
+      setFetchError(err.message || "Ollama connection failed. Switch to manual mode if needed.");
+      setOllamaModels([]);
+      setIsManualMode(true); // Auto fallback to manual if connection fails
+    } finally {
+      setIsFetchingModels(false);
+    }
+  }, []);
 
   useEffect(() => {
     const savedProvider = Cookies.get('ai_provider') || 'openai';
@@ -30,7 +70,11 @@ export default function SettingsPage() {
     setApiKey(savedApiKey);
     setBaseUrl(savedBaseUrl);
     setModel(savedModel);
-  }, []);
+
+    if (savedProvider === 'ollama') {
+      fetchOllamaModels(savedBaseUrl);
+    }
+  }, [fetchOllamaModels]);
 
   const handleSave = () => {
     Cookies.set('ai_provider', provider, { expires: 365 });
@@ -42,19 +86,20 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const openAiModels = ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'];
+
   return (
     <div className="h-screen flex bg-[#09090b] text-zinc-100 overflow-hidden font-sans">
       <Sidebar className="hidden md:flex" />
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Header */}
         <header className="bg-zinc-950/50 backdrop-blur-md border-b border-zinc-900/50 px-8 py-6 flex items-center justify-between sticky top-0 z-50">
           <div className="flex items-center gap-4">
             <div className="h-10 w-10 rounded-xl bg-zinc-900 flex items-center justify-center border border-zinc-800">
               <SettingsIcon className="h-5 w-5 text-zinc-400" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">System Settings</h1>
+              <h1 className="text-xl font-bold tracking-tight text-white">System Settings</h1>
               <p className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest mt-0.5">Configuration Panel</p>
             </div>
           </div>
@@ -82,8 +127,12 @@ export default function SettingsPage() {
                     value={provider} 
                     onValueChange={(val) => {
                       setProvider(val);
-                      if (val === 'openai' && model === 'llama3') setModel('gpt-4o');
-                      if (val === 'ollama' && model === 'gpt-4o') setModel('llama3');
+                      if (val === 'openai') {
+                        setModel('gpt-4o');
+                        setIsManualMode(false);
+                      } else {
+                        fetchOllamaModels(baseUrl);
+                      }
                     }}
                     className="grid grid-cols-2 gap-4"
                   >
@@ -107,25 +156,30 @@ export default function SettingsPage() {
                   <div className="space-y-6 pt-4 border-t border-zinc-900/50">
                     {provider === 'openai' ? (
                       <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="apiKey" className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">API Authentication</Label>
-                          <div className="flex items-center gap-1.5 text-[10px] text-zinc-700 font-bold">
-                            <ShieldCheck className="h-3 w-3" />
-                            CLIENT-SIDE ENCRYPTED
-                          </div>
-                        </div>
+                        <Label htmlFor="apiKey" className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">API Authentication</Label>
                         <Input 
                           id="apiKey" 
                           type="password" 
                           placeholder="sk-................................................" 
-                          className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 font-mono"
+                          className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 font-mono placeholder:text-zinc-800"
                           value={apiKey}
                           onChange={(e) => setApiKey(e.target.value)}
                         />
                       </div>
                     ) : (
                       <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <Label htmlFor="baseUrl" className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Ollama Node URL</Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="baseUrl" className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Ollama Node URL</Label>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 text-zinc-500 hover:text-white"
+                            onClick={() => fetchOllamaModels(baseUrl)}
+                            disabled={isFetchingModels}
+                          >
+                            <RefreshCw className={cn("h-3 w-3", isFetchingModels && "animate-spin")} />
+                          </Button>
+                        </div>
                         <Input 
                           id="baseUrl" 
                           placeholder="http://127.0.0.1:11434/v1" 
@@ -133,18 +187,64 @@ export default function SettingsPage() {
                           value={baseUrl}
                           onChange={(e) => setBaseUrl(e.target.value)}
                         />
+                        {fetchError && (
+                          <div className="flex items-center gap-2 text-amber-500/80 text-[10px] font-bold pl-1 uppercase tracking-tight">
+                            <AlertCircle className="h-3 w-3" />
+                            {fetchError}
+                          </div>
+                        )}
                       </div>
                     )}
 
                     <div className="space-y-3">
-                      <Label htmlFor="model" className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Neural Model Target</Label>
-                      <Input 
-                        id="model" 
-                        placeholder={provider === 'openai' ? "gpt-4o" : "llama3"} 
-                        className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 font-mono"
-                        value={model}
-                        onChange={(e) => setModel(e.target.value)}
-                      />
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="model" className="text-xs font-bold text-zinc-500 uppercase tracking-widest pl-1">Neural Model Target</Label>
+                        {provider === 'ollama' && ollamaModels.length > 0 && (
+                          <button 
+                            onClick={() => setIsManualMode(!isManualMode)}
+                            className="text-[10px] font-bold text-zinc-600 hover:text-zinc-400 flex items-center gap-1.5 transition-colors uppercase tracking-widest"
+                          >
+                            {isManualMode ? <List className="h-3 w-3" /> : <Edit3 className="h-3 w-3" />}
+                            {isManualMode ? "Switch to List" : "Manual Type"}
+                          </button>
+                        )}
+                      </div>
+                      
+                      {provider === 'ollama' && !isManualMode && ollamaModels.length > 0 ? (
+                        <Select value={model} onValueChange={setModel}>
+                          <SelectTrigger className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus:ring-1 focus:ring-zinc-700 font-mono">
+                            <SelectValue placeholder="Select a model" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                            {ollamaModels.map((m) => (
+                              <SelectItem key={m} value={m} className="focus:bg-zinc-800 focus:text-white font-mono text-xs">
+                                {m}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : provider === 'openai' ? (
+                        <Select value={model} onValueChange={setModel}>
+                          <SelectTrigger className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus:ring-1 focus:ring-zinc-700 font-mono">
+                            <SelectValue placeholder="Select OpenAI model" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                            {openAiModels.map((m) => (
+                              <SelectItem key={m} value={m} className="focus:bg-zinc-800 focus:text-white font-mono text-xs">
+                                {m}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input 
+                          id="model" 
+                          placeholder="e.g. llama3" 
+                          className="bg-zinc-900/50 border-zinc-800 text-zinc-100 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-zinc-700 font-mono"
+                          value={model}
+                          onChange={(e) => setModel(e.target.value)}
+                        />
+                      )}
                     </div>
                   </div>
                 </CardContent>

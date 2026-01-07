@@ -1,0 +1,154 @@
+{
+  "id": "a1e3f9c7-4c8a-4b1e-8a5f-6e5b6d6c6d5e",
+  "title": "校园图书馆系统/App 功能需求调研",
+  "description": "",
+  "fields": [
+    {
+      "id": "q1",
+      "label": "Q1. 您的身份",
+      "type": "select",
+      "placeholder": "请选择",
+      "required": true,
+      "options": [
+        "A. 学生",
+        "B. 老师"
+      ],
+      "logic": [
+        {
+          "condition": "A",
+          "destination": "q3"
+        },
+        {
+          "condition": "B",
+          "destination": "q4"
+        }
+      ]
+    },
+    {
+      "id": "q2",
+      "label": "Q2. 您平时去学校图书馆借阅书籍的频率是？",
+      "type": "select",
+      "placeholder": "请选择",
+      "required": true,
+      "options": [
+        "A. 每周多次",
+        "B. 每月一次",
+        "C. 几乎不去"
+      ],
+      "logic": [
+        {
+          "condition": "A",
+          "destination": "q3"
+        },
+        {
+          "condition": "B",
+          "destination": "q3"
+        },
+        {
+          "condition": "C",
+          "destination": "q4"
+        }
+      ]
+    },
+    {
+      "id": "q3",
+      "label": "Q3. 在使用现有图书馆服务时，您遇到过哪些困扰？",
+      "type": "multi-select",
+      "placeholder": "请选择",
+      "required": true,
+      "options": [
+        "找不到想看的书",
+        "借阅流程太繁琐",
+        "不知道有哪些新书",
+        "还书经常忘记导致逾期",
+        "排队时间长"
+      ],
+      "logic": [
+        {
+          "condition": "任何选项",
+          "destination": "q5"
+        }
+      ]
+    },
+    {
+      "id": "q4",
+      "label": "Q4. 阻碍您去图书馆的主要原因是？",
+      "type": "select",
+      "placeholder": "请选择",
+      "required": true,
+      "options": [
+        "没有感兴趣的书",
+        "学习太忙没时间",
+        "环境不够舒适",
+        "习惯看电子书",
+        "不知道怎么查书"
+      ],
+      "logic": [
+        {
+          "condition": "任何选项",
+          "destination": "q5"
+        }
+      ]
+    },
+    {
+      "id": "q5",
+      "label": "Q5. 如果我们要开发一个新的图书馆系统，您最希望拥有的 3 个功能是？",
+      "type": "multi-select",
+      "placeholder": "请选择",
+      "required": true,
+      "options": [
+        "手机端一键预约/续借",
+        "实时查看座位空余情况",
+        "个性化新书推荐（AI推荐）",
+        "读书排行榜/书评社区",
+        "电子书直接阅读功能"
+      ],
+      "logic": [
+        {
+          "condition": "任何选项",
+          "destination": "q5"
+        }
+      ]
+    },
+    {
+      "id": "q6",
+      "label": "Q6. 您对“Vibe Coding”（极简、流畅、高颜值）风格界面的期待程度？",
+      "type": "scale",
+      "placeholder": "请输入1-10分",
+      "required": true,
+      "options": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10"
+      ],
+      "logic": [
+        {
+          "condition": "任何选项",
+          "destination": "q5"
+        }
+      ]
+    },
+    {
+      "id": "q7",
+      "label": "Q7. 如果您愿意成为首批内测用户，请留下邮箱",
+      "type": "email",
+      "placeholder": "请输入邮箱",
+      "required": false,
+      "options": [],
+      "logic": [
+        {
+          "condition": "邮箱填写",
+          "destination": "q5"
+        }
+      ]
+    }
+  ],
+  "createdAt": 1719183272
+}

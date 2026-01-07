@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useFormStore } from '@/store/formStore';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Sparkles, Settings, Terminal } from 'lucide-react';
+import { Loader2, Sparkles, Settings, Terminal, Mail, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 import { Sidebar } from '@/components/Sidebar';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
@@ -115,7 +116,7 @@ export default function Home() {
           <div className="w-full space-y-12 relative z-10">
             {!isLoading && (
               <div className="text-center space-y-4">
-                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight bg-gradient-to-b from-white to-zinc-500 bg-clip-text text-transparent">
+                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight bg-gradient-to-br from-white to-zinc-400 bg-clip-text text-transparent">
                   What should we build?
                 </h1>
                 <p className="text-lg md:text-xl text-zinc-500 font-medium max-w-xl mx-auto">
@@ -156,14 +157,15 @@ export default function Home() {
                 </div>
               </div>
             ) : (
-              <div className="w-full max-w-3xl mx-auto space-y-10">
+              <div className="w-full max-w-3xl mx-auto space-y-10 relative">
                 <div className="relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-zinc-800 to-zinc-700 rounded-2xl opacity-20 blur-xl group-focus-within:opacity-40 transition duration-1000"></div>
+                  {/* Soft Radial Glow (Static Cloud) */}
+                  <div className="absolute -inset-16 bg-gradient-to-tr from-cyan-500/10 via-fuchsia-500/10 to-violet-500/10 rounded-full blur-[120px] opacity-100 pointer-events-none"></div>
                   
-                  <div className="relative bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden focus-within:border-zinc-600 transition-colors">
+                  <div className="relative bg-zinc-950/90 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl overflow-hidden focus-within:border-white/20 transition-all duration-300 z-10">
                     <Textarea
                       placeholder="E.g. A high-end restaurant feedback form with rating and dietary logic..."
-                      className="w-full min-h-[140px] p-6 text-xl bg-transparent border-none focus-visible:ring-0 resize-none placeholder:text-zinc-700 text-zinc-100"
+                      className="w-full min-h-[140px] max-h-[300px] p-6 text-xl bg-transparent border-none focus-visible:ring-0 resize-none placeholder:text-zinc-800 text-zinc-100 overflow-y-auto custom-scrollbar"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       onKeyDown={(e) => {
@@ -173,12 +175,12 @@ export default function Home() {
                         }
                       }}
                     />
-                    <div className="p-4 bg-zinc-900/20 border-t border-zinc-800/50 flex justify-between items-center">
+                    <div className="p-4 bg-white/5 border-t border-white/5 flex justify-between items-center">
                       <span className="text-[10px] text-zinc-600 font-mono uppercase tracking-widest pl-2">
                         Press <kbd className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-500 font-sans">Enter</kbd> to generate
                       </span>
                       <Button 
-                        className="rounded-xl px-6 h-11 bg-white text-black hover:bg-zinc-200 transition-all font-bold shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:scale-[1.02] active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-600"
+                        className="rounded-xl px-8 h-12 bg-white text-black hover:bg-zinc-200 transition-all font-semibold shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 disabled:bg-zinc-800 disabled:text-zinc-600"
                         onClick={handleGenerate}
                         disabled={!prompt.trim()}
                       >
@@ -191,16 +193,35 @@ export default function Home() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300">
                   {[
-                    { title: "Contact Form", desc: "Basic name, email, and message.", prompt: "A simple contact form for my portfolio website." },
-                    { title: "Event RSVP", desc: "Collect guest details and preferences.", prompt: "An event RSVP form with dietary choices and number of guests." }
+                    { 
+                      title: "Contact Form", 
+                      desc: "Basic name, email, and message.", 
+                      prompt: "A simple contact form for my portfolio website.",
+                      icon: Mail,
+                      color: "text-blue-400",
+                      bg: "bg-blue-400/10"
+                    },
+                    { 
+                      title: "Event RSVP", 
+                      desc: "Collect guest details and preferences.", 
+                      prompt: "An event RSVP form with dietary choices and number of guests.",
+                      icon: Calendar,
+                      color: "text-pink-400",
+                      bg: "bg-pink-400/10"
+                    }
                   ].map((card, i) => (
                     <button 
                       key={i}
                       onClick={() => setPrompt(card.prompt)}
-                      className="p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur-md hover:bg-zinc-800 hover:border-zinc-700 text-left transition-all group hover:-translate-y-1"
+                      className="p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur-md hover:bg-zinc-800 hover:border-zinc-600 text-left transition-all duration-300 group hover:-translate-y-1 flex items-start gap-4 shadow-lg hover:shadow-zinc-950"
                     >
-                      <p className="text-sm font-bold mb-1 text-zinc-200 group-hover:text-white transition-colors">{card.title}</p>
-                      <p className="text-xs text-zinc-500 group-hover:text-zinc-400 transition-colors">{card.desc}</p>
+                      <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border border-zinc-800/50 group-hover:border-zinc-700 transition-colors", card.bg, card.color)}>
+                        <card.icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold mb-1 text-zinc-200 group-hover:text-white transition-colors">{card.title}</p>
+                        <p className="text-xs text-zinc-600 group-hover:text-zinc-400 transition-colors">{card.desc}</p>
+                      </div>
                     </button>
                   ))}
                 </div>
